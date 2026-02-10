@@ -24,7 +24,7 @@ export default function SignUpScreen() {
 
     setIsLoading(true);
     try {
-      await authService.signUp(username, password);
+      await authService.signUp({ username, password });
       
       // 2. Alerte de succès avec redirection au clic sur OK
       Alert.alert(

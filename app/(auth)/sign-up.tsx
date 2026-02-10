@@ -29,7 +29,7 @@ export default function SignUpScreen() {
       // 2. Alerte de succès avec redirection au clic sur OK
       Alert.alert(
         "Compte créé !",
-        "Bienvenue sur E-PAOSY. Votre compte a été configuré avec succès.",
+        `Bienvenue sur E-PAOSY ${username}. Votre compte a été configuré avec succès.`,
         [
           { 
             text: "C'est parti !", 

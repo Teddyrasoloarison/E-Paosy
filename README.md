@@ -48,3 +48,4 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- $env:JWT_SECRET="sngy4u9v8w7x6z5a4b3c2d1e0f"; npm run dev

@@ -8,6 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '../../src/services/authService';
@@ -15,6 +17,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/useAuthStore';
 import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
+
+const logoEpaosy = require('../../assets/images/logo-e-paosy.png');
 
 export default function SignUpScreen() {
   const [username, setUsername] = useState('');
@@ -92,14 +96,20 @@ export default function SignUpScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1B5E20" />
         </TouchableOpacity>
 
         <View style={styles.header}>
           <View style={styles.logoPlaceholder}>
-            <Ionicons name="wallet" size={60} color="#4CAF50" />
+            <Image source={logoEpaosy} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>E-PAOSY</Text>
           <Text style={styles.subtitle}>Gérez vos finances intelligemment</Text>
@@ -179,6 +189,7 @@ export default function SignUpScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -186,7 +197,8 @@ export default function SignUpScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F3FAF5' },
-  content: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
+  content: { flex: 1, paddingHorizontal: 24 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingBottom: 40 },
   backButton: { alignSelf: 'flex-start', marginBottom: 10, paddingVertical: 8, paddingRight: 8 },
   header: { alignItems: 'center', marginBottom: 34 },
   logoPlaceholder: {
@@ -197,7 +209,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+    overflow: 'hidden',
   },
+  logoImage: { width: '80%', height: '80%', borderRadius: 25 },
   appName: { fontSize: 30, fontWeight: '700', color: '#1B5E20', letterSpacing: 2 },
   subtitle: { fontSize: 14, color: '#5D7564', marginTop: 5 },
   form: {

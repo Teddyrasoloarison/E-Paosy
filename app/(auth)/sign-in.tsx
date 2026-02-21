@@ -9,6 +9,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -72,16 +73,22 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#1B5E20" />
         </Pressable>
 
         <View style={styles.header}>
           <View style={styles.logoBadge}>
-            <Ionicons name="log-in-outline" size={34} color="#2E7D32" />
+            <Ionicons name="person-outline" size={34} color="#2E7D32" />
           </View>
           <Text style={styles.title}>Connexion</Text>
           <Text style={styles.subtitle}>Accedez a votre compte E-PAOSY</Text>
@@ -162,6 +169,7 @@ export default function SignInScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -173,6 +181,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3FAF5',
   },
   content: { flex: 1, paddingHorizontal: 24, paddingBottom: 20 },
+  scrollContent: { flexGrow: 1, paddingBottom: 40 },
   backButton: {
     marginTop: 8,
     alignSelf: 'flex-start',

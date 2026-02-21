@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
+const logoEpaosy = require('../../assets/images/logo-e-paosy.png');
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -12,7 +14,7 @@ export default function WelcomeScreen() {
       <View style={styles.content}>
         <View style={styles.logoSection}>
           <View style={styles.logoCircle}>
-            <Ionicons name="wallet" size={80} color="#4CAF50" />
+            <Image source={logoEpaosy} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.appName}>E-PAOSY</Text>
           <Text style={styles.tagline}>Votre argent, partout, tout le temps.</Text>
@@ -66,6 +68,8 @@ const styles = StyleSheet.create({
   logoCircle: {
     width: 140,
     height: 140,
+    overflow: 'hidden',
+    padding: 8,
     backgroundColor: '#F1F8E9',
     borderRadius: 70,
     justifyContent: 'center',
@@ -82,6 +86,7 @@ const styles = StyleSheet.create({
       web: { boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)' }
     })
   },
+  logoImage: { width: '95%', height: '95%', borderRadius: 100 },
   appName: { fontSize: 34, fontWeight: '800', color: '#1B5E20', letterSpacing: 2.5 },
   tagline: { fontSize: 16, color: '#2E7D32', marginTop: 8, textAlign: 'center', fontWeight: '600' },
   description: {

@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, 
-  StyleSheet, KeyboardAvoidingView, 
-  Platform, Alert 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '../../src/services/authService';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/useAuthStore';
-import { googleAuthService } from '../../src/services/googleAuthService';
-
-WebBrowser.maybeCompleteAuthSession();
+import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
 
 export default function SignUpScreen() {
   const [username, setUsername] = useState('');
@@ -22,15 +23,8 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    expoClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
 
   const handleSignup = async () => {
     if (!username.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -46,15 +40,41 @@ export default function SignUpScreen() {
     setIsLoading(true);
     try {
       await authService.signUp({ username, password });
+      const response = await authService.signIn({ username, password });
+      await setAuth(response.token, response.account.id, response.account.username);
 
+      // Demander si l'utilisateur souhaite associer son empreinte
       Alert.alert(
         "Compte créé !",
-        `Bienvenue sur E-PAOSY ${username}. Votre compte a été configuré avec succès.`,
+        "Souhaitez-vous associer votre empreinte digitale à ce compte pour une connexion plus rapide ?",
         [
           {
-            text: "C'est parti !",
-            onPress: () => router.replace('/(tabs)/dashboard')
-          }
+            text: "Non, merci",
+            style: "cancel",
+            onPress: () => router.replace('/(tabs)/dashboard'),
+          },
+          {
+            text: "Oui",
+            onPress: async () => {
+              const result = await fingerprintAuthService.enrollFingerprint({
+                username,
+                password,
+              });
+              if (result.success) {
+                Alert.alert(
+                  "Empreinte associée",
+                  "Votre empreinte a été associée à votre compte. Vous pourrez vous connecter en un instant !",
+                  [{ text: "C'est parti !", onPress: () => router.replace('/(tabs)/dashboard') }]
+                );
+              } else {
+                Alert.alert(
+                  "Empreinte non associée",
+                  result.error || "Impossible d'associer l'empreinte. Vous pouvez vous connecter avec votre nom et mot de passe.",
+                  [{ text: "OK", onPress: () => router.replace('/(tabs)/dashboard') }]
+                );
+              }
+            },
+          },
         ]
       );
     } catch (error: any) {
@@ -66,50 +86,6 @@ export default function SignUpScreen() {
       setIsLoading(false);
     }
   };
-
-  const handleGoogleSignUp = async () => {
-    if (!googleRequest) {
-      Alert.alert('Google indisponible', 'Configuration Google manquante.');
-      return;
-    }
-    setIsGoogleLoading(true);
-    await googlePromptAsync();
-  };
-
-  useEffect(() => {
-    const run = async () => {
-      if (googleResponse?.type !== 'success') {
-        if (googleResponse?.type === 'cancel') {
-          setIsGoogleLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const accessToken = googleResponse.authentication?.accessToken;
-        if (!accessToken) {
-          throw new Error("Connexion Google impossible.");
-        }
-
-        const profile = await googleAuthService.getProfile(accessToken);
-        const credentials = googleAuthService.toCredentials(profile);
-
-        await authService.signUp(credentials);
-        const response = await authService.signIn(credentials);
-        await setAuth(response.token, response.account.id, response.account.username);
-        router.replace('/(tabs)/dashboard');
-      } catch (error: any) {
-        Alert.alert(
-          "Erreur d'inscription Google",
-          error.response?.data?.message || error.message || "Impossible de creer le compte avec Google."
-        );
-      } finally {
-        setIsGoogleLoading(false);
-      }
-    };
-
-    run();
-  }, [googleResponse, router, setAuth]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -195,17 +171,6 @@ export default function SignUpScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.googleButton, isGoogleLoading && { opacity: 0.7 }]}
-            onPress={handleGoogleSignUp}
-            disabled={isGoogleLoading}
-          >
-            <Ionicons name="logo-google" size={18} color="#1B5E20" />
-            <Text style={styles.googleButtonText}>
-              {isGoogleLoading ? 'Creation...' : 'Creer avec Google'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             onPress={() => router.push('/(auth)/sign-in')}
             style={styles.linkButton}
           >
@@ -280,19 +245,6 @@ const styles = StyleSheet.create({
     })
   },
   buttonText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
-  googleButton: {
-    marginTop: 10,
-    height: 55,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CFE1D3',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  googleButtonText: { color: '#1B5E20', fontSize: 16, fontWeight: '700' },
   linkButton: { marginTop: 25, alignItems: 'center' },
   linkText: { color: '#607566', fontSize: 14 },
   linkHighlight: { color: '#2E7D32', fontWeight: '700' },

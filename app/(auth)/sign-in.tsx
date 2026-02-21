@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,28 +13,18 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { authSchema, AuthFormData } from '../../src/utils/authSchema';
 import { authService } from '../../src/services/authService';
 import { useAuthStore } from '../../src/store/useAuthStore';
-import { googleAuthService } from '../../src/services/googleAuthService';
+import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function SignInScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [showPassword, setShowPassword] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    expoClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
+  const [isFingerprintLoading, setIsFingerprintLoading] = useState(false);
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
@@ -44,69 +34,40 @@ export default function SignInScreen() {
   const onSubmit = async (data: AuthFormData) => {
     try {
       const response = await authService.signIn(data);
-      
-      // On enregistre le token et l'ID du compte dans Zustand
       await setAuth(response.token, response.account.id, response.account.username);
-      
-      // REDIRECTION : On va spécifiquement vers la page dashboard dans le dossier tabs
-      router.replace('/(tabs)/dashboard'); 
-      
+      router.replace('/(tabs)/dashboard');
     } catch (error: any) {
       console.error(error);
       Alert.alert(
-        "Erreur de connexion", 
+        "Erreur de connexion",
         error.response?.data?.message || "Identifiants incorrects ou problème serveur"
       );
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    if (!googleRequest) {
-      Alert.alert('Google indisponible', 'Configuration Google manquante.');
-      return;
+  const handleFingerprintSignIn = async () => {
+    setIsFingerprintLoading(true);
+    try {
+      const result = await fingerprintAuthService.signInWithFingerprint();
+      if (result.success && result.credentials) {
+        const response = await authService.signIn(result.credentials);
+        await setAuth(response.token, response.account.id, response.account.username);
+        router.replace('/(tabs)/dashboard');
+      } else {
+        Alert.alert(
+          "Connexion empreinte",
+          result.error || "Impossible de se connecter avec l'empreinte."
+        );
+      }
+    } catch (error: any) {
+      Alert.alert(
+        "Erreur",
+        error.message || "Une erreur est survenue lors de la connexion par empreinte."
+      );
+    } finally {
+      setIsFingerprintLoading(false);
     }
-
-    setIsGoogleLoading(true);
-    await googlePromptAsync();
   };
-
-  useEffect(() => {
-    const run = async () => {
-      if (googleResponse?.type !== 'success') {
-        if (googleResponse?.type === 'cancel') {
-          setIsGoogleLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const accessToken = googleResponse.authentication?.accessToken;
-        if (!accessToken) {
-          throw new Error("Connexion Google impossible.");
-        }
-
-        const profile = await googleAuthService.getProfile(accessToken);
-        const credentials = googleAuthService.toCredentials(profile);
-
-        try {
-          const response = await authService.signIn(credentials);
-          await setAuth(response.token, response.account.id, response.account.username);
-          router.replace('/(tabs)/dashboard');
-        } catch (_error: any) {
-          Alert.alert(
-            'Compte introuvable',
-            "Ce compte Google n'existe pas encore ici. Veuillez creer un compte avec Google d'abord."
-          );
-        }
-      } catch (error: any) {
-        Alert.alert('Erreur Google', error.message || 'Echec de la connexion Google.');
-      } finally {
-        setIsGoogleLoading(false);
-      }
-    };
-
-    run();
-  }, [googleResponse, router, setAuth]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -185,13 +146,13 @@ export default function SignInScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.googleButton, isGoogleLoading && styles.buttonDisabled]}
-            onPress={handleGoogleSignIn}
-            disabled={isGoogleLoading}
+            style={[styles.fingerprintButton, (isFingerprintLoading && { opacity: 0.7 })]}
+            onPress={handleFingerprintSignIn}
+            disabled={isFingerprintLoading}
           >
-            <Ionicons name="logo-google" size={18} color="#1B5E20" />
-            <Text style={styles.googleButtonText}>
-              {isGoogleLoading ? 'Connexion...' : 'Continuer avec Google'}
+            <Ionicons name="finger-print" size={22} color="#1B5E20" />
+            <Text style={styles.fingerprintButtonText}>
+              {isFingerprintLoading ? 'Connexion...' : 'Se connecter via empreinte digitale'}
             </Text>
           </TouchableOpacity>
 
@@ -303,7 +264,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-  googleButton: {
+  fingerprintButton: {
     marginTop: 10,
     height: 55,
     borderRadius: 12,
@@ -315,7 +276,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  googleButtonText: {
+  fingerprintButtonText: {
     color: '#1B5E20',
     fontSize: 16,
     fontWeight: '700',

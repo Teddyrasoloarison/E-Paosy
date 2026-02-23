@@ -8,12 +8,10 @@ import { TransactionItem, TransactionFilters } from '../types/transaction';
 import EditTransactionModal from './EditTransactionModal';
 
 export default function TransactionList() {
-  // 1. État pour les filtres
   const [filters, setFilters] = useState<TransactionFilters>({});
-  // 2. État pour la transaction à éditer
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionItem | null>(null);
 
-  const { transactions, isLoading, refetch } = useTransactions(filters);
+  const { transactions, isLoading } = useTransactions(filters);
   const { wallets } = useWallets();
 
   const updateFilter = (newFilters: Partial<TransactionFilters>) => {
@@ -27,78 +25,89 @@ export default function TransactionList() {
       {/* --- SECTION FILTRES --- */}
       <View style={styles.filterSection}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {/* Filtre Type */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.filterChip, !filters.type && styles.filterChipActive]}
             onPress={() => updateFilter({ type: undefined })}
           >
-            <Text style={!filters.type && styles.whiteText}>Tous</Text>
+            <Text style={[styles.filterText, !filters.type && styles.whiteText]}>Tous</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.filterChip, filters.type === 'IN' && styles.filterChipActive]}
             onPress={() => updateFilter({ type: 'IN' })}
           >
-            <Text style={filters.type === 'IN' && styles.whiteText}>Revenus</Text>
+            <Text style={[styles.filterText, filters.type === 'IN' && styles.whiteText]}>Revenus</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.filterChip, filters.type === 'OUT' && styles.filterChipActive]}
             onPress={() => updateFilter({ type: 'OUT' })}
           >
-            <Text style={filters.type === 'OUT' && styles.whiteText}>Dépenses</Text>
+            <Text style={[styles.filterText, filters.type === 'OUT' && styles.whiteText]}>Dépenses</Text>
           </TouchableOpacity>
 
           <View style={styles.divider} />
 
-          {/* Filtre Wallets */}
           {wallets.map(w => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={w.id}
               style={[styles.filterChip, filters.walletId === w.id && styles.filterChipActive]}
               onPress={() => updateFilter({ walletId: filters.walletId === w.id ? undefined : w.id })}
             >
-              <Text style={filters.walletId === w.id && styles.whiteText}>{w.name}</Text>
+              <Text style={[styles.filterText, filters.walletId === w.id && styles.whiteText]}>{w.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* --- LISTE DES TRANSACTIONS --- */}
+      {/* --- LISTE --- */}
       <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 100 }}
         ListEmptyComponent={<Text style={styles.empty}>Aucune transaction trouvée</Text>}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.card} 
-            onPress={() => setSelectedTransaction(item)} // Ouvre l'édition
-          >
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.desc}>{item.description}</Text>
-                <Text style={styles.date}>{format(new Date(item.date), 'dd MMM yyyy à HH:mm')}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={[styles.amount, { color: item.type === 'IN' ? '#4CAF50' : '#F44336' }]}>
-                  {item.type === 'IN' ? '+' : '-'} {item.amount.toLocaleString()} Ar
-                </Text>
-                <View style={styles.labels}>
-                  {item.labels.slice(0, 2).map(l => (
-                    <View key={l.id} style={[styles.badge, { backgroundColor: l.color }]}>
-                      <Text style={styles.badgeText}>{l.name}</Text>
-                    </View>
-                  ))}
-                  {item.labels.length > 2 && <Text style={styles.more}>+{item.labels.length - 2}</Text>}
+        renderItem={({ item }) => {
+          
+          // 🔍 ANALYSE DE L'OBJET REÇU
+          // Si tu vois "Clés présentes: amount, description, date" mais PAS "type", 
+          // c'est que ton backend ne l'envoie pas dans le JSON.
+          console.log(`ID: ${item.id} | Clés: ${Object.keys(item).join(', ')} | Type brute: ${item.type}`);
+
+          // Vérification ultra-souple du type
+          const isIncome = item.type?.toString().trim().toUpperCase() === 'IN';
+
+          return (
+            <TouchableOpacity style={styles.card} onPress={() => setSelectedTransaction(item)}>
+              <View style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.desc}>{item.description || 'Sans description'}</Text>
+                  <Text style={styles.date}>
+                    {item.date ? format(new Date(item.date), 'dd MMM yyyy à HH:mm') : '---'}
+                  </Text>
+                </View>
+
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={[
+                    styles.amount,
+                    { color: isIncome ? '#4CAF50' : '#F44336' }
+                  ]}>
+                    {isIncome ? '+' : '-'} {Number(item.amount).toLocaleString()} Ar
+                  </Text>
+
+                  <View style={styles.labels}>
+                    {item.labels && item.labels.slice(0, 2).map(l => (
+                      <View key={l.id} style={[styles.badge, { backgroundColor: l.color || '#999' }]}>
+                        <Text style={styles.badgeText}>{l.name}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        )}
+            </TouchableOpacity>
+          );
+        }}
       />
 
-      {/* --- MODALE D'ÉDITION --- */}
       {selectedTransaction && (
-        <EditTransactionModal 
+        <EditTransactionModal
           visible={!!selectedTransaction}
           transaction={selectedTransaction}
           onClose={() => setSelectedTransaction(null)}
@@ -115,6 +124,7 @@ const styles = StyleSheet.create({
   filterScroll: { paddingHorizontal: 15, alignItems: 'center' },
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F0F0F0', marginRight: 8 },
   filterChipActive: { backgroundColor: '#1B5E20' },
+  filterText: { color: '#666', fontSize: 13 },
   whiteText: { color: '#fff', fontWeight: 'bold' },
   divider: { width: 1, height: 20, backgroundColor: '#DDD', marginRight: 8 },
   card: { backgroundColor: '#fff', padding: 16, marginVertical: 6, borderRadius: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
@@ -125,6 +135,5 @@ const styles = StyleSheet.create({
   labels: { flexDirection: 'row', gap: 4, alignItems: 'center' },
   badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   badgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
-  more: { fontSize: 10, color: '#999', marginLeft: 2 },
   empty: { textAlign: 'center', marginTop: 50, color: '#999' }
 });

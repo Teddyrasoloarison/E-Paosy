@@ -10,8 +10,19 @@ export const transactionService = {
     return response.data;
   },
 
+  // services/transactionService.ts
   createTransaction: async (accountId: string, walletId: string, payload: TransactionPayload) => {
-    const response = await api.post(`/account/${accountId}/wallet/${walletId}/transaction`, payload);
+    // On s'assure que l'objet envoyé contient TOUT ce que le Swagger demande
+    const fullPayload = {
+      ...payload,
+      walletId: walletId,   // Requis dans le body selon ton Swagger
+      accountId: accountId  // Requis dans le body selon ton Swagger
+    };
+
+    const response = await api.post(
+      `/account/${accountId}/wallet/${walletId}/transaction`,
+      fullPayload
+    );
     return response.data;
   },
 

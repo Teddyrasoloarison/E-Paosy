@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useLabels } from '../hooks/useLabels';
+import { useAuthStore } from '../store/useAuthStore'; // Import pour l'ID
 import { transactionSchema, TransactionFormData } from '../utils/transactionSchema';
 
 interface Props {
@@ -14,13 +15,13 @@ interface Props {
 }
 
 export default function CreateTransactionModal({ visible, onClose }: Props) {
+  const accountId = useAuthStore((state) => state.accountId);
   const { createTransaction, isCreating } = useTransactions();
   const { wallets } = useWallets();
   const { data: labelsData } = useLabels();
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TransactionFormData>({
-    // Le "as any" ici débloque le conflit de types complexe de Zod Coerce
-    resolver: zodResolver(transactionSchema) as any, 
+    resolver: zodResolver(transactionSchema) as any,
     defaultValues: {
       description: '',
       amount: 0,
@@ -35,31 +36,39 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
   const selectedLabels = watch('labels') || [];
   const selectedWalletId = watch('walletId');
 
-  const onSubmit: SubmitHandler<TransactionFormData> = (data) => {
-    createTransaction(
-      { 
-        walletId: data.walletId, 
-        data: {
-          description: data.description,
-          amount: data.amount,
-          type: data.type,
-          labels: data.labels,
-          date: new Date(data.date).toISOString()
-        } 
-      },
-      {
-        onSuccess: () => {
-          Alert.alert("Succès", "Transaction enregistrée");
-          reset();
-          onClose();
-        },
-        onError: (err: any) => {
-          Alert.alert("Erreur", err.response?.data?.message || "Erreur serveur");
-        }
-      }
-    );
-  };
+  // Dans CreateTransactionModal.tsx -> onSubmit
 
+  const onSubmit: SubmitHandler<TransactionFormData> = (data) => {
+    if (!accountId) return;
+
+    const payload = {
+      walletId: data.walletId,
+      data: {
+        description: data.description,
+        amount: Number(data.amount),
+        type: data.type,
+        // 🟢 ON CHANGE ICI : On transforme le tableau de strings en tableau d'objets
+        labels: data.labels.map(labelId => ({ id: labelId })),
+        date: new Date(data.date).toISOString(),
+        walletId: data.walletId,
+        accountId: accountId
+      }
+    };
+
+    console.log("2. Payload CORRIGÉ envoyé :", JSON.stringify(payload, null, 2));
+
+    createTransaction(payload, {
+      onSuccess: () => {
+        Alert.alert("Succès", "Transaction enregistrée !");
+        reset();
+        onClose();
+      },
+      onError: (err: any) => {
+        // Si ça échoue encore, ce log nous dira pourquoi
+        console.error("Détail erreur:", err.response?.data);
+      }
+    });
+  };
   const toggleLabel = (id: string) => {
     const current = [...selectedLabels];
     const index = current.indexOf(id);
@@ -80,7 +89,7 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
 
             <View style={styles.typeContainer}>
               {(['OUT', 'IN'] as const).map((t) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={t}
                   style={[styles.typeBtn, selectedType === t && (t === 'IN' ? styles.typeIn : styles.typeOut)]}
                   onPress={() => setValue('type', t)}
@@ -97,11 +106,11 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
               control={control}
               name="amount"
               render={({ field: { onChange, value } }) => (
-                <TextInput 
-                  style={[styles.input, errors.amount && styles.inputError]} 
-                  keyboardType="numeric" 
+                <TextInput
+                  style={[styles.input, errors.amount && styles.inputError]}
+                  keyboardType="numeric"
                   placeholder="0.00"
-                  onChangeText={onChange}
+                  onChangeText={(val) => onChange(val.replace(',', '.'))} // Gère les virgules
                   value={value === 0 ? '' : value.toString()}
                 />
               )}
@@ -111,8 +120,8 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
             <Text style={styles.label}>Portefeuille</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorScroll}>
               {wallets.map((w) => (
-                <TouchableOpacity 
-                  key={w.id} 
+                <TouchableOpacity
+                  key={w.id}
                   style={[styles.chip, selectedWalletId === w.id && styles.chipSelected]}
                   onPress={() => setValue('walletId', w.id)}
                 >
@@ -127,9 +136,9 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
               control={control}
               name="description"
               render={({ field: { onChange, value } }) => (
-                <TextInput 
-                  style={[styles.input, errors.description && styles.inputError]} 
-                  placeholder="Libellé de la transaction" 
+                <TextInput
+                  style={[styles.input, errors.description && styles.inputError]}
+                  placeholder="Libellé de la transaction"
                   onChangeText={onChange}
                   value={value}
                 />
@@ -139,8 +148,8 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
             <Text style={styles.label}>Labels</Text>
             <View style={styles.labelsGrid}>
               {labelsData?.values.map((l) => (
-                <TouchableOpacity 
-                  key={l.id} 
+                <TouchableOpacity
+                  key={l.id}
                   style={[styles.labelChip, { borderColor: l.color }, selectedLabels.includes(l.id) && { backgroundColor: l.color }]}
                   onPress={() => toggleLabel(l.id)}
                 >
@@ -149,8 +158,8 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
               ))}
             </View>
 
-            <TouchableOpacity 
-              style={[styles.submitBtn, isCreating && { opacity: 0.7 }]} 
+            <TouchableOpacity
+              style={[styles.submitBtn, isCreating && { opacity: 0.7 }]}
               onPress={handleSubmit(onSubmit)}
               disabled={isCreating}
             >

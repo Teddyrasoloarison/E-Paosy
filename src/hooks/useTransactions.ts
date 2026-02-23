@@ -7,37 +7,54 @@ export const useTransactions = (filters?: TransactionFilters) => {
   const accountId = useAuthStore((state) => state.accountId);
   const queryClient = useQueryClient();
 
+  // 1. Récupération des transactions
   const query = useQuery({
     queryKey: ['transactions', accountId, filters],
     queryFn: () => transactionService.getTransactions(accountId!, filters),
     enabled: !!accountId,
   });
 
+  // Fonction utilitaire pour rafraîchir toutes les données liées aux finances
+  const refreshAllData = () => {
+    // Invalide les transactions (peu importe les filtres appliqués)
+    queryClient.invalidateQueries({ 
+      queryKey: ['transactions'], 
+      exact: false 
+    });
+    // Invalide les portefeuilles pour mettre à jour les soldes (balance)
+    queryClient.invalidateQueries({ 
+      queryKey: ['wallets'], 
+      exact: false 
+    });
+  };
+
+  // 2. Création d'une transaction
   const createMutation = useMutation({
     mutationFn: ({ walletId, data }: { walletId: string; data: TransactionPayload }) =>
       transactionService.createTransaction(accountId!, walletId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      console.log("Transaction créée avec succès, rafraîchissement...");
+      refreshAllData();
     },
   });
 
-  // 🟢 AJOUT DE LA MUTATION UPDATE
+  // 3. Mise à jour d'une transaction
   const updateMutation = useMutation({
     mutationFn: ({ walletId, transactionId, data }: { walletId: string; transactionId: string; data: TransactionPayload }) =>
       transactionService.updateTransaction(accountId!, walletId, transactionId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      console.log("Transaction mise à jour, rafraîchissement...");
+      refreshAllData();
     },
   });
 
+  // 4. Suppression d'une transaction
   const deleteMutation = useMutation({
     mutationFn: ({ walletId, transactionId }: { walletId: string; transactionId: string }) =>
       transactionService.deleteTransaction(accountId!, walletId, transactionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      console.log("Transaction supprimée, rafraîchissement...");
+      refreshAllData();
     },
   });
 
@@ -45,9 +62,12 @@ export const useTransactions = (filters?: TransactionFilters) => {
     ...query,
     transactions: query.data ?? [],
     createTransaction: createMutation.mutate,
-    updateTransaction: updateMutation.mutate, // 🟢 Exporté ici
+    updateTransaction: updateMutation.mutate,
     deleteTransaction: deleteMutation.mutate,
     isCreating: createMutation.isPending,
-    isUpdating: updateMutation.isPending,      // 🟢 Exporté ici
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    // Permet de forcer un rafraîchissement manuel si besoin (ex: pull-to-refresh)
+    refetchTransactions: query.refetch, 
   };
 };

@@ -1,58 +1,58 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/useAuthStore';
+import { useWallets } from '../../src/hooks/useWallets';
+import { useTransactions } from '../../src/hooks/useTransactions';
 import DashboardShell from '@/components/dashboard-shell';
 
 export default function DashboardScreen() {
-  const accountId = useAuthStore((state) => state.accountId);
   const username = useAuthStore((state) => state.username);
+  const { wallets } = useWallets();
+  const { transactions } = useTransactions();
+
+  const totalBalance = wallets.reduce((sum, w) => sum + (w.amount || 0), 0);
+  const transactionCount = transactions.length;
 
   return (
     <DashboardShell title="Dashboard" subtitle={`Bienvenue ${username ?? ''}`.trim()}>
-      <View style={styles.balanceCard}>
-        <Text style={styles.cardLabel}>Compte actif</Text>
-        <Text style={styles.accountValue}>{accountId ?? '--'}</Text>
-        <Text style={styles.cardHint}>Surveillez vos operations et gardez le controle.</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* statistics cards */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Ionicons name="wallet-outline" size={20} color="#2E7D32" />
+            <Text style={styles.statValue}>{totalBalance.toLocaleString('fr-FR')} Ar</Text>
+            <Text style={styles.statText}>Solde total</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="swap-horizontal-outline" size={20} color="#2E7D32" />
+            <Text style={styles.statValue}>{transactionCount}</Text>
+            <Text style={styles.statText}>Transactions</Text>
+          </View>
+          {/* additional cards can be added here */}
+        </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Ionicons name="wallet-outline" size={20} color="#2E7D32" />
-          <Text style={styles.statValue}>Ar</Text>
-          <Text style={styles.statText}>Solde</Text>
+        {/* chart section - placeholder */}
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Analyse des dépenses</Text>
+          <View style={styles.chartPlaceholder}>
+            <Text style={styles.chartPlaceholderText}>[Graphique à venir]</Text>
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Ionicons name="swap-horizontal-outline" size={20} color="#2E7D32" />
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statText}>Transactions</Text>
+
+        {/* additional info section */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoHeader}>Raccourcis & Informations</Text>
+          <Text style={styles.infoText}>Ajoutez ici des liens rapides vers vos objectifs, étiquettes ou statistiques avancées.</Text>
         </View>
-      </View>
+      </ScrollView>
     </DashboardShell>
   );
 }
 
 const styles = StyleSheet.create({
-  balanceCard: {
-    backgroundColor: '#4CAF50',
-    padding: 20,
-    borderRadius: 18,
-    marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-      },
-      android: { elevation: 3 },
-      web: { boxShadow: '0px 5px 12px rgba(0, 0, 0, 0.12)' },
-    }),
-  },
-  cardLabel: { color: '#E8F5E9', fontSize: 13, marginBottom: 8 },
-  accountValue: { color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 8 },
-  cardHint: { color: '#E8F5E9', fontSize: 13 },
-  statsRow: { flexDirection: 'row', gap: 12 },
+  container: { paddingBottom: 30 },
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   statCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -61,7 +61,40 @@ const styles = StyleSheet.create({
     borderColor: '#DFEADF',
     padding: 14,
     gap: 4,
+    alignItems: 'center',
   },
   statValue: { fontSize: 18, fontWeight: '700', color: '#1B5E20' },
   statText: { fontSize: 13, color: '#5D7564' },
+
+  /* chart styles */
+  chartCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+      web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.1)' },
+    }),
+  },
+  chartTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  chartPlaceholder: {
+    height: 150,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartPlaceholderText: { color: '#9E9E9E' },
+
+  /* info section */
+  infoSection: { padding: 16, backgroundColor: '#E8F5E9', borderRadius: 14 },
+  infoHeader: { fontSize: 15, fontWeight: '600', marginBottom: 8 },
+  infoText: { fontSize: 13, color: '#4A4A4A' },
 });

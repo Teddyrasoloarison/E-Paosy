@@ -14,7 +14,9 @@ interface Props {
 }
 
 // Palette suggérée pour les labels (Assure-toi qu'elle correspond à CreateLabelModal)
-const COLORS = ['#4CAF50', '#1E88E5', '#E91E63', '#FB8C00', '#8E24AA', '#F44336', '#00BCD4'];
+const COLORS = ['#4CAF50', '#457cac', '#ff0000', '#ff8c00', '#8E24AA',
+    '#F44336', '#07353b', '#2196F3', '#9C27B0',
+    '#d3a662', '#795548', '#000000', '#e41549'];
 
 export default function EditLabelModal({ visible, onClose, label }: Props) {
     const { updateLabel, isUpdating } = useLabels();

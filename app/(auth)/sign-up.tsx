@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/useAuthStore';
 import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
+import { labelService } from '@/src/services/labelService';
 
 const logoEpaosy = require('../../assets/images/logo-e-paosy.png');
 
@@ -46,6 +47,25 @@ export default function SignUpScreen() {
       await authService.signUp({ username, password });
       const response = await authService.signIn({ username, password });
       await setAuth(response.token, response.account.id, response.account.username);
+
+      // creer automatiquement quelques labels par defaut en arrière-plan
+      (async (acctId: string) => {
+        const LABEL_NAMES = ['frais', 'loyer', 'nouriture', 'écolage', 'électricité'];
+        const COLORS = ['#4CAF50', '#457cac', '#ff0000', '#ff8c00', '#8E24AA',
+    '#F44336', '#07353b', '#2196F3', '#9C27B0',
+    '#d3a662', '#795548', '#000000', '#e41549'];
+        try {
+          await Promise.all(
+            LABEL_NAMES.map((name) => {
+              const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+              return labelService.createLabel(acctId, { name, color });
+            })
+          );
+        } catch (err) {
+          // pas bloquant, juste log pour debug
+          console.warn('Échec création labels par défaut', err);
+        }
+      })(response.account.id);
 
       // Demander si l'utilisateur souhaite associer son empreinte
       Alert.alert(

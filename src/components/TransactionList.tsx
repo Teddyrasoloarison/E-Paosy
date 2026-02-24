@@ -3,7 +3,6 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView } from '
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { format } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';
 import { TransactionItem, TransactionFilters } from '../types/transaction';
 import EditTransactionModal from './EditTransactionModal';
 
@@ -69,10 +68,19 @@ export default function TransactionList() {
           // 🔍 ANALYSE DE L'OBJET REÇU
           // Si tu vois "Clés présentes: amount, description, date" mais PAS "type", 
           // c'est que ton backend ne l'envoie pas dans le JSON.
+          // debug: montrer l'objet complet pour diagnostiquer les valeurs reçues
+          console.log("transaction item:", item);
           console.log(`ID: ${item.id} | Clés: ${Object.keys(item).join(', ')} | Type brute: ${item.type}`);
 
-          // Vérification ultra-souple du type
-          const isIncome = item.type?.toString().trim().toUpperCase() === 'IN';
+          // Vérification du type uniquement : ne pas se fier au signe du montant
+          const hasType = item.type !== undefined && item.type !== null;
+          if (!hasType) {
+            console.warn(`Transaction ${item.id} sans type reçu, affichage par défaut en dépense`);
+          }
+          const isIncome = hasType && item.type.toString().trim().toUpperCase() === 'IN';
+
+          // valeur absolue pour l'affichage, on ne veut jamais montrer deux signes
+          const displayAmount = Math.abs(Number(item.amount)).toLocaleString();
 
           return (
             <TouchableOpacity style={styles.card} onPress={() => setSelectedTransaction(item)}>
@@ -87,9 +95,9 @@ export default function TransactionList() {
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={[
                     styles.amount,
-                    { color: isIncome ? '#4CAF50' : '#F44336' }
+                    { color: isIncome ? '#2ab92f' : '#df2113' }
                   ]}>
-                    {isIncome ? '+' : '-'} {Number(item.amount).toLocaleString()} Ar
+                    {isIncome ? '+' : '-'} {displayAmount} Ar
                   </Text>
 
                   <View style={styles.labels}>

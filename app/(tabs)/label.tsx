@@ -4,29 +4,15 @@ import { useLabels } from '@/src/hooks/useLabels';
 import { Ionicons } from '@expo/vector-icons';
 import CreateLabelModal from '@/src/components/CreateLabelModal';
 import LabelList from '@/src/components/LabelList'; // Utilisation du composant liste qu'on a créé
+import DashboardShell from '@/components/dashboard-shell';
 
 export default function LabelsTab() {
   const { isLoading } = useLabels();
   const [createModalVisible, setCreateModalVisible] = useState(false);
 
   return (
-    <View style={styles.container}>
-      {/* HEADER : Titre + Bouton Ajouter */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Mes Labels</Text>
-          <Text style={styles.subtitle}>Organisez vos transactions</Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.addButton} 
-          onPress={() => setCreateModalVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="add" size={28} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      {/* LISTE DES LABELS */}
+    <DashboardShell title="Labels" subtitle="Organisez vos transactions">
+      {/* bouton flottant + liste */}
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -35,30 +21,29 @@ export default function LabelsTab() {
         <LabelList />
       )}
 
+      <TouchableOpacity 
+        style={styles.addButton} 
+        onPress={() => setCreateModalVisible(true)}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+
       {/* MODALE DE CRÉATION */}
       <CreateLabelModal 
         visible={createModalVisible} 
         onClose={() => setCreateModalVisible(false)} 
       />
-    </View>
+    </DashboardShell>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA', // Fond gris très léger pour faire ressortir les cartes blanches
+    // background color already provided by DashboardShell
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60, // Ajuste selon le safe area de ton app
-    paddingBottom: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    // header replaced by DashboardShell
   },
   title: {
     fontSize: 24,

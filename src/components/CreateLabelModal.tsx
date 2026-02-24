@@ -12,10 +12,9 @@ interface Props {
 }
 
 // Liste de couleurs prédéfinies pour ton UI
-const PRESET_COLORS = [
-  '#4CAF50', '#2196F3', '#9C27B0', '#F44336', 
-  '#FF9800', '#795548', '#607D8B', '#009688'
-];
+const PRESET_COLORS = ['#4CAF50', '#457cac', '#ff0000', '#ff8c00', '#8E24AA',
+    '#F44336', '#07353b', '#2196F3', '#9C27B0',
+    '#d3a662', '#795548', '#000000', '#e41549'];
 
 export default function CreateLabelModal({ visible, onClose }: Props) {
   const { createLabel, isCreating } = useLabels();

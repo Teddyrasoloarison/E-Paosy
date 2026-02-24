@@ -18,7 +18,6 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Transaction', route: '/(tabs)/transaction', icon: 'swap-horizontal-outline' },
   { label: 'Objectif', route: '/(tabs)/objectif', icon: 'flag-outline' },
   { label: 'Configuration', route: '/(tabs)/configuration', icon: 'settings-outline' },
-  { label: 'Projet', route: '/(tabs)/projet', icon: 'folder-outline' },
 ];
 
 interface DashboardShellProps {

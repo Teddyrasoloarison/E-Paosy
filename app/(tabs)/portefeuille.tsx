@@ -5,49 +5,49 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/useAuthStore';
 import WalletList from '../../src/components/WalletList';
 import CreateWalletModal from '../../src/components/CreateWalletModal';
+import { Colors } from '../../constants/colors';
+import { useThemeStore } from '../../src/store/useThemeStore';
 
-export default function PortfeuilleScreen() {
+export default function PortefeuilleScreen() {
   const accountId = useAuthStore((state) => state.accountId);
-  // État pour contrôler la visibilité de la modale de création
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const isDarkMode = useThemeStore((state) => state.isDarkMode);
+  const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
     <DashboardShell 
-      title="E-PAOSY" 
-      subtitle="Gestion de vos comptes et portefeuilles"
+      title="Portefeuilles" 
+      subtitle="Gérez vos comptes"
     >
       
-      {/* Badge d'identification du compte */}
-      <View style={styles.accountBadge}>
-        <Ionicons name="person-circle-outline" size={14} color="#2E7D32" />
-        <Text style={styles.accountText}>
+      {/* Account Badge */}
+      <View style={[styles.accountBadge, { backgroundColor: theme.primary + '15' }]}>
+        <Ionicons name="person-circle-outline" size={16} color={theme.primary} />
+        <Text style={[styles.accountText, { color: theme.primary }]}>
           ID: {accountId ? accountId.slice(0, 13) : '---'}...
         </Text>
       </View>
 
-      {/* Section Liste des Wallets */}
       <View style={styles.content}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes Portefeuilles</Text>
-          <Ionicons name="wallet-outline" size={20} color="#666" />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Mes Portefeuilles</Text>
+          <Ionicons name="wallet-outline" size={22} color={theme.primary} />
         </View>
         
-        {/* On laisse WalletList gérer sa propre liste ou son chargement */}
         <View style={{ flex: 1 }}>
           <WalletList />
         </View>
       </View>
 
-      {/* Bouton Flottant (FAB) - Identique à ObjectifScreen */}
+      {/* FAB */}
       <TouchableOpacity 
-        style={styles.fab} 
+        style={[styles.fab, { backgroundColor: theme.primary }]} 
         onPress={() => setIsModalVisible(true)}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={30} color="#fff" />
+        <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Composant Modale pour l'ajout */}
       <CreateWalletModal 
         visible={isModalVisible} 
         onClose={() => setIsModalVisible(false)} 
@@ -62,50 +62,47 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   accountBadge: { 
-    backgroundColor: '#E8F5E9', 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 8,
-    marginTop: -5,
+    paddingHorizontal: 14, 
+    paddingVertical: 8, 
+    borderRadius: 10,
     marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#C8E6C9'
+    gap: 8,
   },
   accountText: { 
-    color: '#2E7D32', 
-    fontSize: 12, 
-    fontWeight: '700',
-    marginLeft: 6,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' 
+    fontSize: 13, 
+    fontWeight: '600',
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 16,
   },
   sectionTitle: { 
     fontSize: 20, 
-    fontWeight: 'bold', 
-    color: '#333' 
+    fontWeight: '700',
   },
   fab: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: '#1B5E20', // Vert E-PAOSY
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: 24,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0D9488',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: { elevation: 6 },
+      web: { boxShadow: '0px 4px 12px rgba(13, 148, 136, 0.3)' },
+    }),
   },
 });

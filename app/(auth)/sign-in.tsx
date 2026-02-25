@@ -20,12 +20,16 @@ import { useAuthStore } from '../../src/store/useAuthStore';
 import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemeStore } from '../../src/store/useThemeStore';
+import { Colors } from '../../constants/colors';
 
 export default function SignInScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [showPassword, setShowPassword] = useState(false);
   const [isFingerprintLoading, setIsFingerprintLoading] = useState(false);
+  const isDarkMode = useThemeStore((state) => state.isDarkMode);
+  const theme = isDarkMode ? Colors.dark : Colors.light;
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
@@ -71,7 +75,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
@@ -83,28 +87,32 @@ export default function SignInScreen() {
           showsVerticalScrollIndicator={false}
         >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#1B5E20" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </Pressable>
 
         <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <Ionicons name="person-outline" size={34} color="#2E7D32" />
+          <View style={[styles.logoBadge, { backgroundColor: theme.primary + '15' }]}>
+            <Ionicons name="person-outline" size={34} color={theme.primary} />
           </View>
-          <Text style={styles.title}>Connexion</Text>
-          <Text style={styles.subtitle}>Accedez a votre compte E-PAOSY</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Connexion</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Accédez à votre compte E-PAOSY</Text>
         </View>
 
-        <View style={styles.form}>
+        <View style={[styles.form, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Controller
             control={control}
             name="username"
             render={({ field: { onChange, value } }) => (
-              <View style={[styles.inputGroup, errors.username && styles.inputError]}>
-                <Ionicons name="person-outline" size={20} color="#5D7564" />
+              <View style={[
+                styles.inputGroup, 
+                { backgroundColor: theme.backgroundSecondary, borderColor: theme.border },
+                errors.username && styles.inputError
+              ]}>
+                <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.text }]}
                   placeholder="Nom d'utilisateur"
-                  placeholderTextColor="#8CA092"
+                  placeholderTextColor={theme.textTertiary}
                   value={value}
                   onChangeText={onChange}
                   autoCapitalize="none"
@@ -119,12 +127,16 @@ export default function SignInScreen() {
             control={control}
             name="password"
             render={({ field: { onChange, value } }) => (
-              <View style={[styles.inputGroup, errors.password && styles.inputError]}>
-                <Ionicons name="lock-closed-outline" size={20} color="#5D7564" />
+              <View style={[
+                styles.inputGroup, 
+                { backgroundColor: theme.backgroundSecondary, borderColor: theme.border },
+                errors.password && styles.inputError
+              ]}>
+                <Ionicons name="lock-closed-outline" size={20} color={theme.textSecondary} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: theme.text }]}
                   placeholder="Mot de passe"
-                  placeholderTextColor="#8CA092"
+                  placeholderTextColor={theme.textTertiary}
                   secureTextEntry={!showPassword}
                   value={value}
                   onChangeText={onChange}
@@ -134,7 +146,7 @@ export default function SignInScreen() {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color="#5D7564"
+                    color={theme.textSecondary}
                   />
                 </Pressable>
               </View>
@@ -143,29 +155,30 @@ export default function SignInScreen() {
           {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
 
           <TouchableOpacity
-            style={[styles.button, isSubmitting && styles.buttonDisabled]}
+            style={[styles.button, { backgroundColor: theme.primary }, isSubmitting && styles.buttonDisabled]}
             onPress={handleSubmit(onSubmit)}
             disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>
               {isSubmitting ? "Chargement..." : "Se connecter"}
             </Text>
+            {!isSubmitting && <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.fingerprintButton, (isFingerprintLoading && { opacity: 0.7 })]}
+            style={[styles.fingerprintButton, { borderColor: theme.border }]}
             onPress={handleFingerprintSignIn}
             disabled={isFingerprintLoading}
           >
-            <Ionicons name="finger-print" size={22} color="#1B5E20" />
-            <Text style={styles.fingerprintButtonText}>
-              {isFingerprintLoading ? 'Connexion...' : 'Se connecter via empreinte digitale'}
+            <Ionicons name="finger-print" size={22} color={theme.primary} />
+            <Text style={[styles.fingerprintButtonText, { color: theme.primary }]}>
+              {isFingerprintLoading ? 'Connexion...' : 'Connexion via empreinte'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/(auth)/sign-up')} style={styles.linkButton}>
-            <Text style={styles.linkText}>
-              Pas encore de compte ? <Text style={styles.linkHighlight}>Creer un compte</Text>
+            <Text style={[styles.linkText, { color: theme.textSecondary }]}>
+              Pas encore de compte ? <Text style={[styles.linkHighlight, { color: theme.primary }]}>Créer un compte</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -178,7 +191,6 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3FAF5',
   },
   content: { flex: 1, paddingHorizontal: 24, paddingBottom: 20 },
   scrollContent: { flexGrow: 1, paddingBottom: 40 },
@@ -193,7 +205,6 @@ const styles = StyleSheet.create({
     width: 74,
     height: 74,
     borderRadius: 20,
-    backgroundColor: '#E6F4E8',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
@@ -202,95 +213,92 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '700',
     textAlign: 'center',
-    color: '#1B5E20',
   },
   subtitle: {
     marginTop: 8,
-    color: '#5D7564',
     fontSize: 14,
     textAlign: 'center',
   },
   form: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2ECE4',
-    padding: 16,
+    padding: 20,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
-        shadowRadius: 8,
+        shadowRadius: 12,
       },
-      android: { elevation: 2 },
-      web: { boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.06)' },
+      android: { elevation: 3 },
+      web: { boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)' },
     }),
   },
   inputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#D8E6DC',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 55,
-    marginTop: 10,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 56,
+    marginTop: 12,
   },
   input: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 12,
     fontSize: 16,
   },
   inputError: {
-    borderColor: '#E53935',
+    borderColor: '#EF4444',
   },
   errorText: {
-    color: '#E53935',
+    color: '#EF4444',
     fontSize: 12,
     marginTop: 5,
     marginLeft: 5,
   },
   button: {
-    backgroundColor: '#4CAF50',
-    height: 55,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  buttonDisabled: {
-    backgroundColor: '#A5D6A7',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  fingerprintButton: {
-    marginTop: 10,
-    height: 55,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CFE1D3',
+    height: 56,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
+    marginTop: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0D9488',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+    }),
   },
-  fingerprintButtonText: {
-    color: '#1B5E20',
-    fontSize: 16,
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '700',
   },
-  linkButton: { marginTop: 18, alignItems: 'center' },
-  linkText: { color: '#607566', fontSize: 14 },
-  linkHighlight: { color: '#2E7D32', fontWeight: '700' },
+  fingerprintButton: {
+    marginTop: 16,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  fingerprintButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  linkButton: { marginTop: 24, alignItems: 'center' },
+  linkText: { fontSize: 14 },
+  linkHighlight: { fontWeight: '700' },
 });

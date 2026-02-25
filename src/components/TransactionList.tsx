@@ -1,100 +1,164 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import { TransactionItem, TransactionFilters } from '../types/transaction';
 import EditTransactionModal from './EditTransactionModal';
+import { Colors } from '../../constants/colors';
+import { useThemeStore } from '../store/useThemeStore';
 
 export default function TransactionList() {
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionItem | null>(null);
+  const isDarkMode = useThemeStore((state) => state.isDarkMode);
+  const theme = isDarkMode ? Colors.dark : Colors.light;
 
   const { transactions, isLoading } = useTransactions(filters);
   const { wallets } = useWallets();
+
+  // Sort transactions by creation date (newest first - based on id)
+  const sortedTransactions = useMemo(() => {
+    if (!transactions) return [];
+    return [...transactions].sort((a, b) => b.id.localeCompare(a.id));
+  }, [transactions]);
 
   const updateFilter = (newFilters: Partial<TransactionFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
-  if (isLoading) return <View style={styles.center}><Text>Chargement...</Text></View>;
+  if (isLoading) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.textSecondary }}>Chargement...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      {/* --- SECTION FILTRES --- */}
-      <View style={styles.filterSection}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* FILTERS SECTION */}
+      <View style={[styles.filterSection, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+        <View style={styles.filterHeader}>
+          <Ionicons name="filter" size={16} color={theme.textSecondary} />
+          <Text style={[styles.filterTitle, { color: theme.textSecondary }]}>Filtres</Text>
+          {(filters.type || filters.walletId) && (
+            <TouchableOpacity onPress={() => setFilters({})}>
+              <Text style={[styles.clearFilter, { color: theme.error }]}>Effacer</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.filterScroll}
+        >
           <TouchableOpacity
-            style={[styles.filterChip, !filters.type && styles.filterChipActive]}
+            style={[
+              styles.filterChip, 
+              { backgroundColor: !filters.type ? theme.primary : theme.background },
+              !filters.type && styles.filterChipActive
+            ]}
             onPress={() => updateFilter({ type: undefined })}
           >
-            <Text style={[styles.filterText, !filters.type && styles.whiteText]}>Tous</Text>
+            <Ionicons name="apps" size={14} color={!filters.type ? '#FFFFFF' : theme.textSecondary} />
+            <Text style={[
+              styles.filterText, 
+              { color: !filters.type ? '#FFFFFF' : theme.textSecondary }
+            ]}>Tous</Text>
           </TouchableOpacity>
+          
           <TouchableOpacity
-            style={[styles.filterChip, filters.type === 'IN' && styles.filterChipActive]}
-            onPress={() => updateFilter({ type: 'IN' })}
+            style={[
+              styles.filterChip, 
+              filters.type === 'IN' && { backgroundColor: theme.success }
+            ]}
+            onPress={() => updateFilter({ type: filters.type === 'IN' ? undefined : 'IN' })}
           >
-            <Text style={[styles.filterText, filters.type === 'IN' && styles.whiteText]}>Revenus</Text>
+            <Ionicons name="arrow-down" size={14} color={filters.type === 'IN' ? '#FFFFFF' : theme.success} />
+            <Text style={[
+              styles.filterText, 
+              { color: filters.type === 'IN' ? '#FFFFFF' : theme.textSecondary }
+            ]}>Revenus</Text>
           </TouchableOpacity>
+          
           <TouchableOpacity
-            style={[styles.filterChip, filters.type === 'OUT' && styles.filterChipActive]}
-            onPress={() => updateFilter({ type: 'OUT' })}
+            style={[
+              styles.filterChip, 
+              filters.type === 'OUT' && { backgroundColor: theme.error }
+            ]}
+            onPress={() => updateFilter({ type: filters.type === 'OUT' ? undefined : 'OUT' })}
           >
-            <Text style={[styles.filterText, filters.type === 'OUT' && styles.whiteText]}>Dépenses</Text>
+            <Ionicons name="arrow-up" size={14} color={filters.type === 'OUT' ? '#FFFFFF' : theme.error} />
+            <Text style={[
+              styles.filterText, 
+              { color: filters.type === 'OUT' ? '#FFFFFF' : theme.textSecondary }
+            ]}>Dépenses</Text>
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {wallets.map(w => (
             <TouchableOpacity
               key={w.id}
-              style={[styles.filterChip, filters.walletId === w.id && styles.filterChipActive]}
+              style={[
+                styles.filterChip, 
+                { backgroundColor: filters.walletId === w.id ? theme.primary : theme.background },
+                filters.walletId === w.id && styles.filterChipActive
+              ]}
               onPress={() => updateFilter({ walletId: filters.walletId === w.id ? undefined : w.id })}
             >
-              <Text style={[styles.filterText, filters.walletId === w.id && styles.whiteText]}>{w.name}</Text>
+              <Ionicons name="wallet" size={14} color={filters.walletId === w.id ? '#FFFFFF' : theme.textSecondary} />
+              <Text style={[
+                styles.filterText, 
+                { color: filters.walletId === w.id ? '#FFFFFF' : theme.textSecondary }
+              ]}>{w.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* --- LISTE --- */}
+      {/* LIST */}
       <FlatList
-        data={transactions}
+        data={sortedTransactions}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 100 }}
-        ListEmptyComponent={<Text style={styles.empty}>Aucune transaction trouvée</Text>}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Aucune transaction trouvée</Text>
+          </View>
+        }
         renderItem={({ item }) => {
-          
-          // 🔍 ANALYSE DE L'OBJET REÇU
-          // Si tu vois "Clés présentes: amount, description, date" mais PAS "type", 
-          // c'est que ton backend ne l'envoie pas dans le JSON.
-          console.log(`ID: ${item.id} | Clés: ${Object.keys(item).join(', ')} | Type brute: ${item.type}`);
-
-          // Vérification ultra-souple du type
-          const isIncome = item.type?.toString().trim().toUpperCase() === 'IN';
+          const hasType = item.type !== undefined && item.type !== null;
+          const isIncome = hasType && item.type.toString().trim().toUpperCase() === 'IN';
+          const displayAmount = Math.abs(Number(item.amount)).toLocaleString();
 
           return (
-            <TouchableOpacity style={styles.card} onPress={() => setSelectedTransaction(item)}>
+            <TouchableOpacity 
+              style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} 
+              onPress={() => setSelectedTransaction(item)}
+              activeOpacity={0.7}
+            >
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.desc}>{item.description || 'Sans description'}</Text>
-                  <Text style={styles.date}>
+                  <Text style={[styles.desc, { color: theme.text }]} numberOfLines={1}>
+                    {item.description || 'Sans description'}
+                  </Text>
+                  <Text style={[styles.date, { color: theme.textTertiary }]}>
                     {item.date ? format(new Date(item.date), 'dd MMM yyyy à HH:mm') : '---'}
                   </Text>
                 </View>
 
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={[
-                    styles.amount,
-                    { color: isIncome ? '#4CAF50' : '#F44336' }
-                  ]}>
-                    {isIncome ? '+' : '-'} {Number(item.amount).toLocaleString()} Ar
+                  <Text style={[styles.amount, { color: isIncome ? theme.success : theme.error }]}>
+                    {isIncome ? '+' : '-'} {displayAmount} Ar
                   </Text>
 
                   <View style={styles.labels}>
                     {item.labels && item.labels.slice(0, 2).map(l => (
-                      <View key={l.id} style={[styles.badge, { backgroundColor: l.color || '#999' }]}>
+                      <View key={l.id} style={[styles.badge, { backgroundColor: l.color || theme.primary }]}>
                         <Text style={styles.badgeText}>{l.name}</Text>
                       </View>
                     ))}
@@ -118,22 +182,31 @@ export default function TransactionList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  filterSection: { paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE' },
-  filterScroll: { paddingHorizontal: 15, alignItems: 'center' },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F0F0F0', marginRight: 8 },
-  filterChipActive: { backgroundColor: '#1B5E20' },
-  filterText: { color: '#666', fontSize: 13 },
-  whiteText: { color: '#fff', fontWeight: 'bold' },
-  divider: { width: 1, height: 20, backgroundColor: '#DDD', marginRight: 8 },
-  card: { backgroundColor: '#fff', padding: 16, marginVertical: 6, borderRadius: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+  filterSection: { paddingVertical: 12, borderBottomWidth: 1 },
+  filterHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, marginBottom: 10, gap: 8 },
+  filterTitle: { fontSize: 13, fontWeight: '600' },
+  clearFilter: { fontSize: 13, fontWeight: '600', marginLeft: 'auto' },
+  filterScroll: { paddingHorizontal: 15, alignItems: 'center', gap: 8 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'transparent' },
+  filterChipActive: { borderColor: 'transparent' },
+  filterText: { fontSize: 13, fontWeight: '500' },
+  divider: { width: 1, height: 20, marginHorizontal: 4 },
+  card: { 
+    padding: 16, 
+    marginVertical: 6, 
+    marginHorizontal: 1,
+    borderRadius: 14, 
+    borderWidth: 1,
+  },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  desc: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },
-  amount: { fontSize: 16, fontWeight: 'bold', marginBottom: 6 },
-  date: { fontSize: 12, color: '#999' },
+  desc: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
+  amount: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  date: { fontSize: 12 },
   labels: { flexDirection: 'row', gap: 4, alignItems: 'center' },
   badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  badgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
-  empty: { textAlign: 'center', marginTop: 50, color: '#999' }
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
+  emptyContainer: { alignItems: 'center', marginTop: 60 },
+  emptyText: { fontSize: 15 }
 });

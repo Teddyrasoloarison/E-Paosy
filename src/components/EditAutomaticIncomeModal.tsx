@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Alert, Platform, ScrollView } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import { useWallets } from '../hooks/useWallets';
 import { automaticIncomeSchema, AutomaticIncomeFormData } from '../utils/walletSchema';
 import { Wallet, UpdateAutomaticIncomeDto } from '../types/wallet';
+import { Colors } from '../../constants/colors';
+import { useThemeStore } from '../store/useThemeStore';
 
 interface Props {
     visible: boolean;
@@ -13,13 +15,21 @@ interface Props {
     wallet: Wallet;
 }
 
+const WALLET_TYPES: { type: string; icon: string; label: string }[] = [
+  { type: 'CASH', icon: 'cash', label: 'Especes' },
+  { type: 'MOBILE_MONEY', icon: 'phone-portrait', label: 'Mobile Money' },
+  { type: 'BANK', icon: 'business', label: 'Banque' },
+  { type: 'DEBT', icon: 'person-remove', label: 'Dette' },
+];
+
 export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: Props) {
     const { updateIncome, isUpdatingIncome } = useWallets();
+    const isDarkMode = useThemeStore((state) => state.isDarkMode);
+    const theme = isDarkMode ? Colors.dark : Colors.light;
 
     const { control, handleSubmit, formState: { errors } } = useForm<AutomaticIncomeFormData>({
         resolver: zodResolver(automaticIncomeSchema) as any,
         defaultValues: {
-            // Initialisation basée sur tes interfaces
             type: wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED',
             amount: wallet.walletAutomaticIncome?.amount || 0,
             paymentDay: wallet.walletAutomaticIncome?.paymentDay || 1,
@@ -27,7 +37,6 @@ export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: P
     });
 
     const onSubmit = (data: AutomaticIncomeFormData) => {
-        // On prépare l'objet exactement comme l'interface UpdateAutomaticIncomeDto
         const payload: UpdateAutomaticIncomeDto = {
             amount: Number(data.amount),
             paymentDay: Number(data.paymentDay),
@@ -35,62 +44,100 @@ export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: P
             haveAutomaticIncome: Number(data.amount) > 0
         };
 
-        // 🔴 LOG À VÉRIFIER DANS TON TERMINAL/DEBUGGER
-        console.log("PAYLOAD ENVOYÉ AU HOOK:", JSON.stringify(payload, null, 2));
-
         updateIncome(
             {
                 walletId: wallet.id,
-                data: payload // Vérifie si ton hook useWallets n'attend pas { walletAutomaticIncome: payload }
+                data: payload
             },
             {
-                onSuccess: (updatedWallet) => {
-                    // 🔴 LOG DU RETOUR SERVEUR
-                    console.log("RÉPONSE SERVEUR:", updatedWallet);
-
-                    Alert.alert(
-                        "Succès",
-                        `Config : ${payload.amount} Ar / Jour ${payload.paymentDay}`
-                    );
+                onSuccess: () => {
+                    Alert.alert("Succes", "Portefeuille mis a jour avec succes !");
                     onClose();
                 },
                 onError: (error: any) => {
-                    console.error("ERREUR API:", error.response?.data);
-                    Alert.alert("Erreur", error.response?.data?.message || "Erreur de synchro");
+                    Alert.alert("Erreur", error.response?.data?.message || "Erreur de mise a jour");
                 }
             }
         );
     };
+
+    // Get the icon for the wallet type
+    const walletTypeIcon = WALLET_TYPES.find(t => t.type === wallet.type)?.icon || 'wallet';
+
     return (
-        <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
-            <View style={styles.overlay}>
-                <View style={styles.content}>
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+            <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                <View style={[styles.content, { backgroundColor: theme.surface }]}>
+                    <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
+                    
                     <View style={styles.header}>
-                        <Text style={styles.title}>Revenu Automatique</Text>
+                        <View style={[styles.titleIcon, { backgroundColor: theme.primary + '15' }]}>
+                            <Ionicons name={walletTypeIcon as any} size={24} color={theme.primary} />
+                        </View>
+                        <View style={styles.titleContent}>
+                            <Text style={[styles.title, { color: theme.text }]}>Modifier Portefeuille</Text>
+                            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{wallet.name}</Text>
+                        </View>
                         <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={28} color="#333" />
+                            <Ionicons name="close-circle" size={28} color={theme.textTertiary} />
                         </TouchableOpacity>
                     </View>
 
-                    <Text style={styles.description}>
-                        Définissez un montant mensuel. Le système l'ajoutera à votre solde au jour indiqué.
-                    </Text>
+                    {/* Wallet Info Preview */}
+                    <View style={[styles.previewCard, { backgroundColor: theme.primary + '10', borderColor: theme.primary + '30' }]}>
+                        <View style={[styles.previewIcon, { backgroundColor: theme.primary }]}>
+                            <Ionicons name={walletTypeIcon as any} size={24} color="#fff" />
+                        </View>
+                        <View style={styles.previewContent}>
+                            <Text style={[styles.previewName, { color: theme.text }]}>
+                                {wallet.name}
+                            </Text>
+                            <Text style={[styles.previewType, { color: theme.textSecondary }]}>
+                                {wallet.type?.replace('_', ' ')}
+                            </Text>
+                            <Text style={[styles.previewHint, { color: theme.textTertiary }]}>
+                                Solde: {(wallet.amount ?? 0).toLocaleString()} Ar
+                            </Text>
+                        </View>
+                    </View>
 
-                    {/* Sélecteur de Type */}
-                    <Text style={styles.label}>Fréquence</Text>
+                    {/* Description */}
+                    {wallet.description && (
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Description</Text>
+                    )}
+                    {wallet.description && (
+                        <View style={[styles.infoBox, { backgroundColor: theme.background }]}>
+                            <Text style={{ color: theme.text }}>{wallet.description}</Text>
+                        </View>
+                    )}
+
+                    {/* Income Type Selector */}
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Revenu automatique</Text>
                     <Controller
                         control={control}
                         name="type"
                         render={({ field: { onChange, value } }) => (
-                            <View style={styles.typeSelector}>
+                            <View style={styles.typeContainer}>
                                 {(['NOT_SPECIFIED', 'MENSUAL'] as const).map((t) => (
                                     <TouchableOpacity
                                         key={t}
-                                        style={[styles.typeOption, value === t && styles.typeOptionSelected]}
+                                        style={[
+                                            styles.typeButton, 
+                                            { backgroundColor: theme.background },
+                                            value === t && { backgroundColor: theme.primary }
+                                        ]}
                                         onPress={() => onChange(t)}
                                     >
-                                        <Text style={[styles.typeOptionText, value === t && styles.typeOptionTextSelected]}>
-                                            {t === 'MENSUAL' ? 'Mensuel' : 'Non spécifié'}
+                                        <Ionicons 
+                                            name={t === 'MENSUAL' ? 'calendar' : 'remove-circle-outline'} 
+                                            size={18} 
+                                            color={value === t ? '#fff' : theme.textSecondary} 
+                                        />
+                                        <Text style={[
+                                            styles.typeText, 
+                                            { color: value === t ? '#fff' : theme.textSecondary }
+                                        ]}>
+                                            {t === 'MENSUAL' ? 'Mensuel' : 'Non specifie'}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
@@ -98,50 +145,61 @@ export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: P
                         )}
                     />
 
-                    {/* Montant */}
-                    <Text style={styles.label}>Montant du revenu (Ar)</Text>
+                    {/* Amount */}
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Montant du revenu (Ar)</Text>
                     <Controller
                         control={control}
                         name="amount"
                         render={({ field: { onChange, value } }) => (
-                            <TextInput
-                                style={[styles.input, errors.amount && styles.inputError]}
-                                placeholder="Ex: 5000"
-                                keyboardType="numeric"
-                                value={value.toString()}
-                                onChangeText={onChange}
-                            />
+                            <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                                <Ionicons name="cash-outline" size={20} color={theme.primary} />
+                                <TextInput 
+                                    style={[styles.input, { color: theme.text }]} 
+                                    placeholder="Ex: 5000"
+                                    placeholderTextColor={theme.textTertiary}
+                                    keyboardType="numeric"
+                                    value={value?.toString() || ''}
+                                    onChangeText={onChange}
+                                />
+                            </View>
                         )}
                     />
-                    {errors.amount && <Text style={styles.errorText}>{errors.amount.message}</Text>}
+                    {errors.amount && <Text style={[styles.errorText, { color: theme.error }]}>{errors.amount.message}</Text>}
 
-                    {/* Jour de paiement */}
-                    <Text style={styles.label}>Jour du prélèvement (1-31)</Text>
+                    {/* Payment Day */}
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Jour du prelevement (1-31)</Text>
                     <Controller
                         control={control}
                         name="paymentDay"
                         render={({ field: { onChange, value } }) => (
-                            <TextInput
-                                style={[styles.input, errors.paymentDay && styles.inputError]}
-                                placeholder="Ex: 1"
-                                keyboardType="numeric"
-                                value={value.toString()}
-                                onChangeText={onChange}
-                            />
+                            <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                                <Ionicons name="calendar-number" size={20} color={theme.primary} />
+                                <TextInput 
+                                    style={[styles.input, { color: theme.text }]} 
+                                    placeholder="Ex: 1"
+                                    placeholderTextColor={theme.textTertiary}
+                                    keyboardType="numeric"
+                                    value={value?.toString() || ''}
+                                    onChangeText={onChange}
+                                />
+                            </View>
                         )}
                     />
-                    {errors.paymentDay && <Text style={styles.errorText}>{errors.paymentDay.message}</Text>}
+                    {errors.paymentDay && <Text style={[styles.errorText, { color: theme.error }]}>{errors.paymentDay.message}</Text>}
 
-                    <TouchableOpacity
-                        style={[styles.submitBtn, isUpdatingIncome && styles.btnDisabled]}
+                    {/* Submit Button */}
+                    <TouchableOpacity 
+                        style={[styles.submitBtn, { backgroundColor: theme.primary }, isUpdatingIncome && { opacity: 0.7 }]} 
                         onPress={handleSubmit(onSubmit)}
                         disabled={isUpdatingIncome}
                     >
-                        {isUpdatingIncome ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.submitBtnText}>Confirmer et Activer</Text>
-                        )}
+                        {isUpdatingIncome ? 
+                            <ActivityIndicator color="#fff" /> : 
+                            <View style={styles.submitContent}>
+                                <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                                <Text style={styles.submitBtnText}>Confirmer</Text>
+                            </View>
+                        }
                     </TouchableOpacity>
                 </View>
             </View>
@@ -150,21 +208,59 @@ export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: P
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    content: { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, paddingBottom: 40 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    title: { fontSize: 22, fontWeight: 'bold', color: '#1B5E20' },
-    description: { fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 20 },
-    label: { fontSize: 14, fontWeight: '600', color: '#444', marginBottom: 8, marginTop: 15 },
-    input: { backgroundColor: '#F5F5F5', borderRadius: 12, padding: 15, fontSize: 16, borderColor: '#EEE' },
-    inputError: { borderWidth: 1, borderColor: '#D32F2F' },
-    errorText: { color: '#D32F2F', fontSize: 12, marginTop: 4 },
-    typeSelector: { flexDirection: 'row', gap: 10 },
-    typeOption: { flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#DDD', alignItems: 'center' },
-    typeOptionSelected: { backgroundColor: '#E8F5E9', borderColor: '#2E7D32' },
-    typeOptionText: { color: '#666', fontWeight: '500' },
-    typeOptionTextSelected: { color: '#2E7D32', fontWeight: 'bold' },
-    submitBtn: { backgroundColor: '#2E7D32', borderRadius: 15, padding: 18, alignItems: 'center', marginTop: 30, elevation: 3 },
-    btnDisabled: { backgroundColor: '#A5D6A7' },
-    submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+    overlay: { flex: 1, justifyContent: 'flex-end' },
+    content: { 
+        borderTopLeftRadius: 25, 
+        borderTopRightRadius: 25, 
+        padding: 20, 
+        maxHeight: '90%',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+            android: { elevation: 10 },
+        }),
+    },
+    handleBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
+    titleIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+    titleContent: { flex: 1 },
+    title: { fontSize: 22, fontWeight: '700' },
+    subtitle: { fontSize: 14, marginTop: 2 },
+    label: { fontSize: 14, fontWeight: '600', marginTop: 16, marginBottom: 8 },
+    inputContainer: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 14, 
+        paddingVertical: 12, 
+        borderRadius: 12,
+        gap: 10,
+    },
+    input: { flex: 1, fontSize: 16 },
+    errorText: { fontSize: 12, marginTop: 4, marginLeft: 4 },
+    typeContainer: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    typeButton: { 
+        flex: 1,
+        flexDirection: 'row', 
+        alignItems: 'center',
+        paddingHorizontal: 14, 
+        paddingVertical: 12, 
+        borderRadius: 12,
+        gap: 8,
+        justifyContent: 'center',
+    },
+    typeText: { fontSize: 13, fontWeight: '600' },
+    infoBox: { 
+        padding: 14, 
+        borderRadius: 12, 
+        marginTop: 4,
+        marginBottom: 8,
+    },
+    previewCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 8, gap: 12 },
+    previewIcon: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    previewContent: { flex: 1 },
+    previewName: { fontSize: 16, fontWeight: '600' },
+    previewType: { fontSize: 13, marginTop: 2 },
+    previewHint: { fontSize: 11, marginTop: 4 },
+    submitBtn: { padding: 18, borderRadius: 14, marginTop: 24, alignItems: 'center' },
+    submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' }
 });

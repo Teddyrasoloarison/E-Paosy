@@ -8,7 +8,7 @@ import { useThemeStore } from '@/src/store/useThemeStore';
 import { Colors } from '@/constants/colors';
 
 // Import logo image
-const logoEpaosy = require('../assets/images/logo-e-paosy.png');
+const logoEpaosy = require('../assets/images/logo-e-paosy-removebg.png');
 
 type MenuItem = {
   label: string;
@@ -23,7 +23,6 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Transactions', route: '/(tabs)/transaction', icon: 'swap-horizontal-outline' },
   { label: 'Objectifs', route: '/(tabs)/objectif', icon: 'flag-outline' },
   { label: 'Configuration', route: '/(tabs)/configuration', icon: 'settings-outline' },
-  { label: 'Projet', route: '/(tabs)/projet', icon: 'folder-outline' },
 ];
 
 interface DashboardShellProps {
@@ -249,8 +248,8 @@ const styles = StyleSheet.create({
     }),
   },
   headerLogo: {
-    width: 28,
-    height: 28,
+    width: 40,
+    height: 40,
     borderRadius: 6,
   },
   headerTitleContainer: {

@@ -9,6 +9,8 @@ import { Colors } from '../../constants/colors';
 import CreateTransactionModal from '../../src/components/CreateTransactionModal';
 import CreateGoalModal from '../../src/components/CreateGoalModal';
 import CreateWalletModal from '../../src/components/CreateWalletModal';
+import { useTransactions } from '@/src/hooks/useTransactions';
+import { useWallets } from '@/src/hooks/useWallets';
 
 export default function DashboardScreen() {
   const router = useRouter();

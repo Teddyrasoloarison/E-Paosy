@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { format } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';
 import { TransactionItem, TransactionFilters } from '../types/transaction';
 import EditTransactionModal from './EditTransactionModal';
 import { Colors } from '../../constants/colors';

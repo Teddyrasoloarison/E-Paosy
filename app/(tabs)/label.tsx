@@ -36,7 +36,7 @@ export default function LabelsTab() {
         visible={createModalVisible} 
         onClose={() => setCreateModalVisible(false)} 
       />
-    </View>
+    </DashboardShell>
   );
 }
 

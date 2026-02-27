@@ -1,11 +1,12 @@
-import React, { ReactNode, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TouchableOpacity, View, Animated, Platform, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { usePathname, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/colors';
+import { useModernAlert } from '@/src/hooks/useModernAlert';
 import { useAuthStore } from '@/src/store/useAuthStore';
 import { useThemeStore } from '@/src/store/useThemeStore';
-import { Colors } from '@/constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { usePathname, useRouter } from 'expo-router';
+import React, { ReactNode, useMemo, useState } from 'react';
+import { Animated, Image, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Import logo image
 const logoEpaosy = require('../assets/images/logo-e-paosy-removebg.png');
@@ -37,6 +38,7 @@ export default function DashboardShell({ title, subtitle, children }: DashboardS
   const logout = useAuthStore((state) => state.logout);
   const [menuOpen, setMenuOpen] = useState(false);
   const { isDarkMode, toggleTheme } = useThemeStore();
+  const { show } = useModernAlert();
 
   const theme = isDarkMode ? Colors.dark : Colors.light;
   const activeRoute = useMemo(() => pathname?.replace(/\/+$/, '') || '', [pathname]);
@@ -72,16 +74,6 @@ export default function DashboardShell({ title, subtitle, children }: DashboardS
           <Text style={[styles.headerTitle, { color: theme.text }]}>{title}</Text>
           {subtitle && <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>}
         </View>
-        <TouchableOpacity 
-          style={[styles.logoButton, { backgroundColor: theme.surface }]}
-          onPress={() => {}}
-        >
-          <Image 
-            source={logoEpaosy} 
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
       </View>
 
       {children}
@@ -180,12 +172,17 @@ export default function DashboardShell({ title, subtitle, children }: DashboardS
 
             <TouchableOpacity
               style={[styles.menuItem, styles.logoutItem]}
-              onPress={() =>
-                Alert.alert('Déconnexion', 'Voulez-vous vous déconnecter ?', [
-                  { text: 'Annuler', style: 'cancel' },
-                  { text: 'Oui', style: 'destructive', onPress: handleLogout },
-                ])
-              }
+              onPress={() => {
+                show({
+                  title: 'Déconnexion',
+                  message: 'Voulez-vous vous déconnecter ?',
+                  type: 'confirm',
+                  buttons: [
+                    { text: 'Annuler', style: 'cancel' },
+                    { text: 'Oui', style: 'destructive', onPress: handleLogout },
+                  ],
+                });
+              }}
             >
               <Ionicons name="log-out-outline" size={20} color={theme.error} />
               <Text style={[styles.logoutText, { color: theme.error }]}>Se déconnecter</Text>

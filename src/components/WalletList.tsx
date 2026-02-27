@@ -1,17 +1,40 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
-import { useWallets } from '../hooks/useWallets'; 
 import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/colors';
+import { useWallets } from '../hooks/useWallets';
+import { useThemeStore } from '../store/useThemeStore';
 import { Wallet } from '../types/wallet';
 import EditAutomaticIncomeModal from './EditAutomaticIncomeModal';
-import { Colors } from '../../constants/colors';
-import { useThemeStore } from '../store/useThemeStore';
+import EditWalletModal from './EditWalletModal';
 
 export default function WalletList() {
   const { data, isLoading, error } = useWallets();
-  const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const [modalType, setModalType] = useState<'edit' | 'income' | null>(null);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+
+  // Get fresh wallet data from the query cache based on selected ID
+  const selectedWallet = useMemo(() => {
+    if (!selectedWalletId || !data?.values) return null;
+    return data.values.find(w => w.id === selectedWalletId) || null;
+  }, [selectedWalletId, data?.values]);
+
+  const handleSelectWallet = useCallback((wallet: Wallet) => {
+    setSelectedWalletId(wallet.id);
+    setModalType('income');
+  }, []);
+
+  const handleEditWallet = useCallback((wallet: Wallet) => {
+    setSelectedWalletId(wallet.id);
+    setModalType('edit');
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedWalletId(null);
+    setModalType(null);
+  }, []);
 
   // Sort wallets by creation date (newest first - based on id)
   const sortedWallets = useMemo(() => {
@@ -60,7 +83,7 @@ export default function WalletList() {
                 },
                 !item.isActive && { opacity: 0.6 }
               ]}
-              onPress={() => setSelectedWallet(item)}
+              onPress={() => handleSelectWallet(item)}
               activeOpacity={0.7}
             >
               <View style={[styles.iconContainer, { backgroundColor: theme.primary + '15' }]}>
@@ -90,6 +113,12 @@ export default function WalletList() {
               </View>
 
               <View style={styles.balanceContainer}>
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
+                  onPress={() => handleEditWallet(item)}
+                >
+                  <Ionicons name="create-outline" size={16} color={theme.primary} />
+                </TouchableOpacity>
                 <Text style={[styles.balance, { color: theme.primary }]}>
                   {(item.amount ?? 0).toLocaleString()} Ar
                 </Text>
@@ -113,11 +142,19 @@ export default function WalletList() {
         }
       />
 
-      {selectedWallet && (
-        <EditAutomaticIncomeModal 
-          visible={!!selectedWallet} 
-          onClose={() => setSelectedWallet(null)} 
-          wallet={selectedWallet} 
+      {selectedWallet && modalType === 'income' && (
+        <EditAutomaticIncomeModal
+          visible={true}
+          onClose={handleCloseModal}
+          wallet={selectedWallet}
+        />
+      )}
+
+      {selectedWallet && modalType === 'edit' && (
+        <EditWalletModal
+          visible={true}
+          onClose={handleCloseModal}
+          wallet={selectedWallet}
         />
       )}
     </View>
@@ -220,9 +257,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: 'flex-start'
   },
-  incomeBadgeText: { 
-    fontSize: 11, 
-    marginLeft: 4, 
-    fontWeight: '600' 
-  }
+  incomeBadgeText: {
+    fontSize: 11,
+    marginLeft: 4,
+    fontWeight: '600'
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

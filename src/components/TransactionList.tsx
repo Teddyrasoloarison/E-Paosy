@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import React, { useMemo, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/colors';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
-import { format } from 'date-fns';
-import { TransactionItem, TransactionFilters } from '../types/transaction';
-import EditTransactionModal from './EditTransactionModal';
-import { Colors } from '../../constants/colors';
 import { useThemeStore } from '../store/useThemeStore';
+import { TransactionFilters, TransactionItem } from '../types/transaction';
+import EditTransactionModal from './EditTransactionModal';
 
 export default function TransactionList() {
   const [filters, setFilters] = useState<TransactionFilters>({});
@@ -130,9 +130,14 @@ export default function TransactionList() {
           </View>
         }
         renderItem={({ item }) => {
-          const hasType = item.type !== undefined && item.type !== null;
-          const isIncome = hasType && item.type.toString().trim().toUpperCase() === 'IN';
+          // Get transaction type - trim + normalize to uppercase for comparison
+          const typeStr = String(item.type || '').trim().toUpperCase();
+          const isIncome = typeStr === 'IN';
           const displayAmount = Math.abs(Number(item.amount)).toLocaleString();
+          
+          // Get wallet name
+          const wallet = wallets.find(w => w.id === item.walletId);
+          const walletName = wallet?.name || 'Portefeuille';
 
           return (
             <TouchableOpacity 
@@ -148,11 +153,17 @@ export default function TransactionList() {
                   <Text style={[styles.date, { color: theme.textTertiary }]}>
                     {item.date ? format(new Date(item.date), 'dd MMM yyyy à HH:mm') : '---'}
                   </Text>
+                  <View style={styles.walletRow}>
+                    <Ionicons name="wallet-outline" size={10} color={theme.textTertiary} />
+                    <Text style={[styles.walletName, { color: theme.textTertiary }]}>
+                      {walletName}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={[styles.amount, { color: isIncome ? theme.success : theme.error }]}>
-                    {isIncome ? '+' : '-'} {displayAmount} Ar
+                    {isIncome ? '' : '-'}{displayAmount} Ar
                   </Text>
 
                   <View style={styles.labels}>
@@ -201,11 +212,20 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   desc: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
-  amount: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  amount: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  typeLabel: { fontSize: 12, fontWeight: '500', marginBottom: 6 },
   date: { fontSize: 12 },
   labels: { flexDirection: 'row', gap: 4, alignItems: 'center' },
   badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyText: { fontSize: 15 }
+  emptyText: { fontSize: 15 },
+  walletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  walletName: {
+    fontSize: 11,
+  },
 });

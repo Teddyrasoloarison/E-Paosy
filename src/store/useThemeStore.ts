@@ -1,5 +1,6 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 interface ThemeState {
   isDarkMode: boolean;
@@ -15,8 +16,8 @@ export const useThemeStore = create<ThemeState>()(
       setDarkMode: (value: boolean) => set({ isDarkMode: value }),
     }),
     {
-      name: 'theme-storage',
-      storage: createJSONStorage(() => localStorage),
-    }
-  )
+      name: "theme-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
 );

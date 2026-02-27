@@ -1,13 +1,14 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Alert, Platform, ScrollView } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { useWallets } from '../hooks/useWallets';
-import { automaticIncomeSchema, AutomaticIncomeFormData } from '../utils/walletSchema';
-import { Wallet, UpdateAutomaticIncomeDto } from '../types/wallet';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ActivityIndicator, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useModernAlert } from '../hooks/useModernAlert';
+import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
+import { UpdateAutomaticIncomeDto, Wallet } from '../types/wallet';
+import { AutomaticIncomeFormData, automaticIncomeSchema } from '../utils/walletSchema';
 
 interface Props {
     visible: boolean;
@@ -25,9 +26,10 @@ const WALLET_TYPES: { type: string; icon: string; label: string }[] = [
 export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: Props) {
     const { updateIncome, isUpdatingIncome } = useWallets();
     const isDarkMode = useThemeStore((state) => state.isDarkMode);
+    const { success: showSuccess, error: showError } = useModernAlert();
     const theme = isDarkMode ? Colors.dark : Colors.light;
 
-    const { control, handleSubmit, formState: { errors } } = useForm<AutomaticIncomeFormData>({
+    const { control, handleSubmit, formState: { errors }, reset } = useForm<AutomaticIncomeFormData>({
         resolver: zodResolver(automaticIncomeSchema) as any,
         defaultValues: {
             type: wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED',
@@ -36,13 +38,28 @@ export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: P
         }
     });
 
+    // Reset form default values when modal becomes visible with updated wallet data
+    React.useEffect(() => {
+        if (visible) {
+            reset({
+                type: wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED',
+                amount: wallet.walletAutomaticIncome?.amount || 0,
+                paymentDay: wallet.walletAutomaticIncome?.paymentDay || 1,
+            });
+        }
+    }, [visible, wallet.walletAutomaticIncome, reset]);
+
     const onSubmit = (data: AutomaticIncomeFormData) => {
+        console.log('Form data:', data);
+        
         const payload: UpdateAutomaticIncomeDto = {
             amount: Number(data.amount),
             paymentDay: Number(data.paymentDay),
             type: data.type,
-            haveAutomaticIncome: Number(data.amount) > 0
+            haveAutomaticIncome: data.type === 'MENSUAL' && Number(data.amount) > 0
         };
+        
+        console.log('Payload sent:', payload);
 
         updateIncome(
             {
@@ -51,11 +68,11 @@ export default function EditAutomaticIncomeModal({ visible, onClose, wallet }: P
             },
             {
                 onSuccess: () => {
-                    Alert.alert("Succes", "Portefeuille mis a jour avec succes !");
+                    showSuccess("Succès", "Portefeuille mis à jour avec succès !");
                     onClose();
                 },
                 onError: (error: any) => {
-                    Alert.alert("Erreur", error.response?.data?.message || "Erreur de mise a jour");
+                    showError("Erreur", error.response?.data?.message || "Erreur de mise à jour");
                 }
             }
         );

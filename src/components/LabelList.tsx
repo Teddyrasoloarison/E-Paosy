@@ -1,33 +1,48 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useLabels } from '../hooks/useLabels'; 
 import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/colors';
+import { useLabels } from '../hooks/useLabels';
+import { useModernAlert } from '../hooks/useModernAlert';
+import { useThemeStore } from '../store/useThemeStore';
 import { LabelItem } from '../types/label';
 import EditLabelModal from './EditLabelModal';
-import { Colors } from '../../constants/colors';
-import { useThemeStore } from '../store/useThemeStore';
 
 export default function LabelList() {
-  const { data, isLoading, error, archiveLabel } = useLabels();
+  const { labels, isLoading, error, archiveLabel } = useLabels();
   const [editingLabel, setEditingLabel] = useState<LabelItem | null>(null);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
-  // Sort labels by creation date (newest first - based on id)
+  // Sort labels by creation date (newest first)
   const sortedLabels = useMemo(() => {
-    if (!data?.values) return [];
-    return [...data.values].sort((a, b) => b.id.localeCompare(a.id));
-  }, [data?.values]);
+    if (!labels) return [];
+    return [...labels].sort((a, b) => {
+      // If createdAt exists, use it for sorting (newest first)
+      if (a.createdAt && b.createdAt) {
+        return b.createdAt.localeCompare(a.createdAt);
+      }
+      // Fallback: keep original order from API
+      return 0;
+    });
+  }, [labels]);
+
+  const { show } = useModernAlert();
 
   const handleArchive = (label: LabelItem) => {
-    Alert.alert("Archiver", `Voulez-vous archiver le label "${label.name}" ?`, [
-      { text: "Annuler", style: "cancel" },
-      { 
-        text: "Oui", 
-        style: "destructive",
-        onPress: () => archiveLabel(label.id) 
-      }
-    ]);
+    show({
+      title: "Archiver",
+      message: `Voulez-vous archiver le label "${label.name}" ?`,
+      type: 'confirm',
+      buttons: [
+        { text: "Annuler", style: "cancel" },
+        { 
+          text: "Oui", 
+          style: "destructive",
+          onPress: () => archiveLabel(label.id) 
+        }
+      ]
+    });
   };
 
   if (isLoading) {

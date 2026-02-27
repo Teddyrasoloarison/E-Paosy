@@ -1,15 +1,17 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
-import { useForm, Controller, SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React from 'react';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
+import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/colors';
+import { useLabels } from '../hooks/useLabels';
+import { useModernAlert } from '../hooks/useModernAlert';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
-import { useLabels } from '../hooks/useLabels';
 import { useAuthStore } from '../store/useAuthStore';
-import { transactionSchema, TransactionFormData } from '../utils/transactionSchema';
-import { Colors } from '../../constants/colors';
 import { useThemeStore } from '../store/useThemeStore';
+import { LabelItem } from '../types/label';
+import { TransactionFormData, transactionSchema } from '../utils/transactionSchema';
 
 interface Props {
   visible: boolean;
@@ -20,9 +22,10 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
   const accountId = useAuthStore((state) => state.accountId);
   const { createTransaction, isCreating } = useTransactions();
   const { wallets } = useWallets();
-  const { data: labelsData } = useLabels();
+  const { labels } = useLabels();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const { success: showSuccess } = useModernAlert();
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema) as any,
@@ -58,7 +61,7 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
 
     createTransaction(payload, {
       onSuccess: () => {
-        Alert.alert("Succes", "Transaction enregistree !");
+        showSuccess("Succès", "Transaction enregistrée !");
         reset();
         onClose();
       },
@@ -195,7 +198,7 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
             {/* Labels */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Labels</Text>
             <View style={styles.labelsGrid}>
-              {labelsData?.values.map((l) => (
+              {labels?.map((l: LabelItem) => (
                 <TouchableOpacity
                   key={l.id}
                   style={[

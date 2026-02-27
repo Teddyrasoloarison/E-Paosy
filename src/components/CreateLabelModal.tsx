@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Alert, Platform, BackHandler } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { useLabels } from '../hooks/useLabels';
-import { labelSchema, LabelFormData } from '../utils/labelSchema';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useEffect } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ActivityIndicator, BackHandler, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useLabels } from '../hooks/useLabels';
+import { useModernAlert } from '../hooks/useModernAlert';
 import { useThemeStore } from '../store/useThemeStore';
+import { LabelFormData, labelSchema } from '../utils/labelSchema';
 
 interface Props {
   visible: boolean;
@@ -47,15 +48,17 @@ export default function CreateLabelModal({ visible, onClose }: Props) {
   const selectedColor = watch('color');
   const labelName = watch('name');
 
+  const { success: showSuccess, error: showError } = useModernAlert();
+
   const onSubmit = (data: LabelFormData) => {
     createLabel(data, {
       onSuccess: () => {
-        Alert.alert("Succes", "Label cree !");
+        showSuccess("Succès", "Label créé !");
         reset();
         onClose();
       },
       onError: (error: any) => {
-        Alert.alert("Erreur", error.response?.data?.message || "Erreur serveur");
+        showError("Erreur", error.response?.data?.message || "Erreur serveur");
       }
     });
   };

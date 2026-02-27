@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Image } from 'react-native';
-import { useThemeStore } from '../src/store/useThemeStore';
+import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../constants/colors';
+import { useThemeStore } from '../src/store/useThemeStore';
 
-const logoEpaosy = require('../assets/images/logo-e-paosy.png');
+const logoEpaosy = require('../assets/images/logo-e-paosy-removebg.png');
 
 interface AnimatedLogoProps {
   showText?: boolean;
@@ -17,7 +17,7 @@ export default function AnimatedLogo({ showText = true, size = 'large' }: Animat
   const sizes = {
     small:  { container: 60,  icon: 30, text: 16 },
     medium: { container: 100, icon: 50, text: 22 },
-    large:  { container: 140, icon: 70, text: 34 },
+    large:  { container: 140, icon: 150, text: 48 },
   };
   const currentSize = sizes[size];
 

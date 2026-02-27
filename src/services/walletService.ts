@@ -34,12 +34,17 @@ export const walletService = {
 
   // PUT : Mise à jour du revenu automatique (spécifique)
   updateAutomaticIncome: async (
-    accountId: string, 
-    walletId: string, 
+    accountId: string,
+    walletId: string,
     incomeData: UpdateAutomaticIncomeDto
   ): Promise<Wallet> => {
     // Note: incomeData doit être { type: 'MENSUAL', amount: X, paymentDay: Y }
     const response = await api.put(`/account/${accountId}/wallet/${walletId}/automaticIncome`, incomeData);
     return response.data;
+  },
+
+  // DELETE : Supprimer un portefeuille
+  deleteWallet: async (accountId: string, walletId: string): Promise<void> => {
+    await api.delete(`/account/${accountId}/wallet/${walletId}`);
   },
 };

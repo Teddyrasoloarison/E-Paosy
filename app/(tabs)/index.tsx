@@ -1,21 +1,53 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, Easing } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Animated, BackHandler, Easing, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AnimatedLogo from '../../components/AnimatedLogo';
-import { useThemeStore } from '../../src/store/useThemeStore';
 import { Colors } from '../../constants/colors';
+import { useModernAlert } from '../../src/hooks/useModernAlert';
+import { useThemeStore } from '../../src/store/useThemeStore';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
+
+  const { show } = useModernAlert();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        show({
+          title: 'Quitter l\'application',
+          message: 'Est-ce que tu veux vraiment quitter ?',
+          type: 'confirm',
+          buttons: [
+            {
+              text: 'Annuler',
+              onPress: () => {},
+              style: 'cancel',
+            },
+            {
+              text: 'Quitter',
+              onPress: () => BackHandler.exitApp(),
+              style: 'destructive',
+            },
+          ]
+        });
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [show])
+  );
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
+  const footerFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Fade in animations for content
@@ -31,6 +63,12 @@ export default function WelcomeScreen() {
         duration: 600,
         delay: 800,
         easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(footerFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: 1200,
         useNativeDriver: true,
       }),
     ]).start();
@@ -117,11 +155,32 @@ export default function WelcomeScreen() {
           </Animated.View>
         </View>
 
-        {/* Footer */}
-        <View style={styles.footerContainer}>
-          <View style={[styles.footerLine, { backgroundColor: theme.border }]} />
-          <Text style={[styles.footerText, { color: theme.textTertiary }]}>Sécurisé par HEI Technology</Text>
-        </View>
+        {/* Footer - Modern & Professional */}
+        <Animated.View 
+          style={[
+            styles.footerContainer, 
+            { 
+              opacity: footerFadeAnim,
+              backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(248, 250, 252, 0.8)',
+            }
+          ]}
+        >
+          {/* Shield Icon Container */}
+          <View style={[styles.footerIconContainer, { backgroundColor: theme.primary + '15' }]}>
+            <Ionicons name="shield-checkmark" size={18} color={theme.primary} />
+          </View>
+          
+          {/* Main Footer Text */}
+          <View style={styles.footerTextContainer}>
+            <Text style={[styles.footerMainText, { color: theme.textSecondary }]}>
+              Sécurisé par
+            </Text>
+            <Text style={[styles.footerBrandText, { color: theme.primary }]}>
+              HEI Technology
+            </Text>
+          </View>
+          
+        </Animated.View>
       </Animated.View>
     </SafeAreaView>
   );
@@ -134,17 +193,19 @@ const styles = StyleSheet.create({
   content: { 
     flex: 1, 
     paddingHorizontal: 24, 
-    justifyContent: 'space-between', 
+    justifyContent: 'center', 
     paddingVertical: 28,
   },
   logoSection: { 
     alignItems: 'center', 
-    marginTop: 40,
+    marginTop: 20,
+    marginBottom: 24,
   },
   featureCard: {
     borderRadius: 18,
     padding: 18,
-    marginTop: 20,
+    marginTop: 24,
+    marginBottom: 24,
     borderWidth: 1,
     gap: 14,
     ...Platform.select({
@@ -176,7 +237,8 @@ const styles = StyleSheet.create({
   },
   actionSection: { 
     gap: 14, 
-    marginBottom: 14,
+    marginTop: 8,
+    marginBottom: 24,
   },
   primaryButton: { 
     paddingVertical: 18, 
@@ -213,6 +275,12 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginTop: 16,
+    alignSelf: 'center',
+    width: '100%',
   },
   footerLine: {
     width: 60,
@@ -225,5 +293,48 @@ const styles = StyleSheet.create({
     fontSize: 12, 
     textTransform: 'uppercase', 
     letterSpacing: 1,
+  },
+  // New footer styles
+  footerIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  footerTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  footerMainText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  footerBrandText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  footerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  footerBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  footerBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

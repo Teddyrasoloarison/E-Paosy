@@ -1,25 +1,27 @@
-import React, { useState } from 'react';
+import { labelService } from '@/src/services/labelService';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
+  BackHandler,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  Image,
-  ScrollView,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { authService } from '../../src/services/authService';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../../src/store/useAuthStore';
-import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
-import { labelService } from '@/src/services/labelService';
-import { useThemeStore } from '../../src/store/useThemeStore';
 import { Colors } from '../../constants/colors';
+import { useModernAlert } from '../../src/hooks/useModernAlert';
+import { authService } from '../../src/services/authService';
+import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
+import { useAuthStore } from '../../src/store/useAuthStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
 
 const logoEpaosy = require('../../assets/images/logo-e-paosy.png');
 
@@ -31,18 +33,37 @@ export default function SignUpScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
   const setAuth = useAuthStore((state) => state.setAuth);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const { error: showError, success: showSuccess, warning: showWarning, show } = useModernAlert();
+
+  useEffect(() => {
+    if (token) {
+      router.replace('/(tabs)/dashboard');
+    }
+  }, [token]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        router.push('/(tabs)');
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router])
+  );
 
   const handleSignup = async () => {
     if (!username.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert("Champs requis", "Veuillez remplir tous les champs.");
+      showWarning("Champs requis", "Veuillez remplir tous les champs.");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Mot de passe invalide", "Les mots de passe ne correspondent pas.");
+      showError("Mot de passe invalide", "Les mots de passe ne correspondent pas.");
       return;
     }
 
@@ -54,7 +75,7 @@ export default function SignUpScreen() {
 
       // creer automatiquement quelques labels par defaut en arriere-plan
       (async (acctId: string) => {
-        const LABEL_NAMES = ['frais', 'loyer', 'nouriture', 'écolage', 'électricité'];
+        const LABEL_NAMES = ['Frais', 'Loyer', 'Nouriture', 'Ecolage', 'Electricité'];
         const COLORS = ['#0D9488', '#0EA5E9', '#EF4444', '#F59E0B', '#8B5CF6',
     '#EC4899', '#06B6D4', '#22C55E', '#A855F7',
     '#d3a662', '#795548', '#000000', '#e41549'];
@@ -72,10 +93,11 @@ export default function SignUpScreen() {
       })(response.account.id);
 
       // Demander si l'utilisateur souhaite associer son empreinte
-      Alert.alert(
-        "Compte créé !",
-        "Souhaitez-vous associer votre empreinte digitale à ce compte pour une connexion plus rapide ?",
-        [
+      show({
+        title: "Compte créé !",
+        message: "Souhaitez-vous associer votre empreinte digitale à ce compte pour une connexion plus rapide ?",
+        type: 'confirm',
+        buttons: [
           {
             text: "Non, merci",
             style: "cancel",
@@ -89,24 +111,24 @@ export default function SignUpScreen() {
                 password,
               });
               if (result.success) {
-                Alert.alert(
+                showSuccess(
                   "Empreinte associée",
-                  "Votre empreinte a été associée à votre compte. Vous pourrez vous connecter en un instant !",
-                  [{ text: "C'est parti !", onPress: () => router.replace('/(tabs)/dashboard') }]
+                  "Votre empreinte a été associée à votre compte. Vous pourrez vous connecter en un instant !"
                 );
+                router.replace('/(tabs)/dashboard');
               } else {
-                Alert.alert(
+                showWarning(
                   "Empreinte non associée",
-                  result.error || "Impossible d'associer l'empreinte. Vous pouvez vous connecter avec votre nom et mot de passe.",
-                  [{ text: "OK", onPress: () => router.replace('/(tabs)/dashboard') }]
+                  result.error || "Impossible d'associer l'empreinte. Vous pouvez vous connecter avec votre nom et mot de passe."
                 );
+                router.replace('/(tabs)/dashboard');
               }
             },
           },
         ]
-      );
+      });
     } catch (error: any) {
-      Alert.alert(
+      showError(
         "Erreur d'inscription",
         error.response?.data?.message || "Une erreur est survenue lors de la création du compte."
       );

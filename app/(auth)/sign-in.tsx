@@ -1,35 +1,61 @@
-import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
-  View,
+  BackHandler,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+  View,
 } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
-import { authSchema, AuthFormData } from '../../src/utils/authSchema';
-import { authService } from '../../src/services/authService';
-import { useAuthStore } from '../../src/store/useAuthStore';
-import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
-import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useThemeStore } from '../../src/store/useThemeStore';
 import { Colors } from '../../constants/colors';
+import { useModernAlert } from '../../src/hooks/useModernAlert';
+import { authService } from '../../src/services/authService';
+import { fingerprintAuthService } from '../../src/services/fingerprintAuthService';
+import { useAuthStore } from '../../src/store/useAuthStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
+import { AuthFormData, authSchema } from '../../src/utils/authSchema';
+
+const logoEpaosy = require('../../assets/images/logo-e-paosy.png');
 
 export default function SignInScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const token = useAuthStore((state) => state.token);
   const [showPassword, setShowPassword] = useState(false);
   const [isFingerprintLoading, setIsFingerprintLoading] = useState(false);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const { error: showError, warning: showWarning } = useModernAlert();
+
+  // redirect away from auth if already logged in
+  useEffect(() => {
+    if (token) {
+      router.replace('/(tabs)/dashboard');
+    }
+  }, [token]);
+
+  // Retour vers index (page d'accueil)
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        router.push('/(tabs)');
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router])
+  );
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
@@ -43,7 +69,7 @@ export default function SignInScreen() {
       router.replace('/(tabs)/dashboard');
     } catch (error: any) {
       console.error(error);
-      Alert.alert(
+      showError(
         "Erreur de connexion",
         error.response?.data?.message || "Identifiants incorrects ou problème serveur"
       );
@@ -59,13 +85,13 @@ export default function SignInScreen() {
         await setAuth(response.token, response.account.id, response.account.username);
         router.replace('/(tabs)/dashboard');
       } else {
-        Alert.alert(
+        showWarning(
           "Connexion empreinte",
           result.error || "Impossible de se connecter avec l'empreinte."
         );
       }
     } catch (error: any) {
-      Alert.alert(
+      showError(
         "Erreur",
         error.message || "Une erreur est survenue lors de la connexion par empreinte."
       );
@@ -91,8 +117,8 @@ export default function SignInScreen() {
         </Pressable>
 
         <View style={styles.header}>
-          <View style={[styles.logoBadge, { backgroundColor: theme.primary + '15' }]}>
-            <Ionicons name="person-outline" size={34} color={theme.primary} />
+          <View style={[styles.logoPlaceholder, { backgroundColor: theme.primary + '15' }]}>
+            <Image source={logoEpaosy} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={[styles.title, { color: theme.text }]}>Connexion</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Accédez à votre compte E-PAOSY</Text>
@@ -209,6 +235,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
+  logoPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  logoImage: { width: '80%', height: '80%', borderRadius: 25 },
   title: {
     fontSize: 30,
     fontWeight: '700',

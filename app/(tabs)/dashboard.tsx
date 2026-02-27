@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Platform, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../src/store/useAuthStore';
 import DashboardShell from '@/components/dashboard-shell';
-import { useThemeStore } from '../../src/store/useThemeStore';
-import { Colors } from '../../constants/colors';
-import CreateTransactionModal from '../../src/components/CreateTransactionModal';
-import CreateGoalModal from '../../src/components/CreateGoalModal';
-import CreateWalletModal from '../../src/components/CreateWalletModal';
 import { useTransactions } from '@/src/hooks/useTransactions';
 import { useWallets } from '@/src/hooks/useWallets';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/colors';
+import CreateGoalModal from '../../src/components/CreateGoalModal';
+import CreateTransactionModal from '../../src/components/CreateTransactionModal';
+import CreateWalletModal from '../../src/components/CreateWalletModal';
+import { useModernAlert } from '../../src/hooks/useModernAlert';
+import { useAuthStore } from '../../src/store/useAuthStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -19,6 +21,35 @@ export default function DashboardScreen() {
   const { transactions } = useTransactions();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+
+  const { show } = useModernAlert();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        show({
+          title: 'Quitter l\'application',
+          message: 'Est-ce que tu veux vraiment quitter ?',
+          type: 'confirm',
+          buttons: [
+            {
+              text: 'Annuler',
+              onPress: () => {},
+              style: 'cancel',
+            },
+            {
+              text: 'Quitter',
+              onPress: () => BackHandler.exitApp(),
+              style: 'destructive',
+            },
+          ]
+        });
+        return true;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [show])
+  );
 
   // States for modals
   const [isTransactionModalVisible, setTransactionModalVisible] = useState(false);
@@ -137,6 +168,8 @@ export default function DashboardScreen() {
             <View style={styles.activityList}>
               {recentTransactions.map((transaction, index) => {
                 const isIncome = transaction.type?.toString().trim().toUpperCase() === 'IN';
+                const wallet = wallets.find(w => w.id === transaction.walletId);
+                const walletName = wallet?.name || 'Portefeuille';
                 return (
                   <View 
                     key={transaction.id} 
@@ -157,12 +190,20 @@ export default function DashboardScreen() {
                       <Text style={[styles.activityDesc, { color: theme.text }]} numberOfLines={1}>
                         {transaction.description || 'Transaction'}
                       </Text>
-                      <Text style={[styles.activityDate, { color: theme.textTertiary }]}>
-                        {transaction.date ? new Date(transaction.date).toLocaleDateString('fr-FR') : ''}
-                      </Text>
+                      <View style={styles.activityMeta}>
+                        <Text style={[styles.activityDate, { color: theme.textTertiary }]}>
+                          {transaction.date ? new Date(transaction.date).toLocaleDateString('fr-FR') : ''}
+                        </Text>
+                        <View style={styles.walletRow}>
+                          <Ionicons name="wallet-outline" size={10} color={theme.textTertiary} />
+                          <Text style={[styles.walletName, { color: theme.textTertiary }]}>
+                            {walletName}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                     <Text style={[styles.activityAmount, { color: isIncome ? theme.success : theme.error }]}>
-                      {isIncome ? '+' : '-'}{Math.abs(Number(transaction.amount)).toLocaleString()} Ar
+                      {isIncome ? '' : '-'}{Math.abs(Number(transaction.amount)).toLocaleString()} Ar
                     </Text>
                   </View>
                 );
@@ -407,5 +448,19 @@ const styles = StyleSheet.create({
   chartPlaceholderText: { 
     fontSize: 13,
     textAlign: 'center',
+  },
+  activityMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  walletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  walletName: {
+    fontSize: 11,
   },
 });

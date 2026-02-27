@@ -1,15 +1,17 @@
-import React, { useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, BackHandler } from 'react-native';
-import { useForm, Controller, SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useEffect } from 'react';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
+import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/colors';
+import { useLabels } from '../hooks/useLabels';
+import { useModernAlert } from '../hooks/useModernAlert';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
-import { useLabels } from '../hooks/useLabels';
-import { transactionSchema } from '../utils/transactionSchema';
-import { TransactionFormData, TransactionItem } from '../types/transaction';
-import { Colors } from '../../constants/colors';
 import { useThemeStore } from '../store/useThemeStore';
+import { LabelItem } from '../types/label';
+import { TransactionFormData, TransactionItem } from '../types/transaction';
+import { transactionSchema } from '../utils/transactionSchema';
 
 interface Props {
   visible: boolean;
@@ -20,7 +22,7 @@ interface Props {
 export default function EditTransactionModal({ visible, onClose, transaction }: Props) {
   const { updateTransaction, isUpdating } = useTransactions();
   const { wallets } = useWallets();
-  const { data: labelsData } = useLabels();
+  const { labels } = useLabels();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
@@ -42,10 +44,13 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
 
   useEffect(() => {
     if (visible && transaction) {
+      // Normalize type: trim + uppercase to avoid whitespace/case issues
+      const normalizedType = String(transaction.type || '').trim().toUpperCase();
+      console.log('EditTransactionModal open - transaction.type:', JSON.stringify(transaction.type), 'normalized:', normalizedType);
       reset({
         description: transaction.description,
         amount: transaction.amount,
-        type: transaction.type,
+        type: normalizedType === 'IN' ? 'IN' : 'OUT',
         walletId: transaction.walletId,
         labels: transaction.labels.map(l => l.id),
         date: transaction.date,
@@ -57,7 +62,17 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
   const selectedLabels = watch('labels') || [];
   const selectedWalletId = watch('walletId');
 
+  const { success: showSuccess, error: showError } = useModernAlert();
+
   const onSubmit: SubmitHandler<TransactionFormData> = (data) => {
+    // Debug: log submitted form data
+    console.log('EditTransactionModal onSubmit - raw form data:', data);
+    // Ensure type is normalized before sending to backend
+    const normalizedType = String(data.type || '').trim().toUpperCase();
+    const finalType = normalizedType === 'IN' ? 'IN' : 'OUT';
+    // Keep form state consistent
+    setValue('type', finalType);
+    console.log('EditTransactionModal onSubmit - normalized type:', finalType);
     updateTransaction(
       { 
         transactionId: transaction.id,
@@ -65,7 +80,7 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
         data: {
           description: data.description,
           amount: data.amount,
-          type: data.type,
+          type: finalType,
           labels: data.labels.map(labelId => ({ id: labelId })),
           date: new Date(data.date).toISOString(),
           walletId: data.walletId,
@@ -74,11 +89,11 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
       },
       {
         onSuccess: () => {
-          Alert.alert("Succes", "Transaction mise a jour");
+          showSuccess("Succès", "Transaction mise à jour");
           onClose();
         },
         onError: (err: any) => {
-          Alert.alert("Erreur", err.response?.data?.message || "Erreur lors de la modification");
+          showError("Erreur", err.response?.data?.message || "Erreur lors de la modification");
         }
       }
     );
@@ -187,7 +202,7 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
             {/* Labels */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Labels</Text>
             <View style={styles.labelsGrid}>
-              {labelsData?.values.map((l) => (
+              {labels?.map((l: LabelItem) => (
                 <TouchableOpacity 
                   key={l.id} 
                   style={[styles.labelChip, { borderColor: l.color }, selectedLabels.includes(l.id) && { backgroundColor: l.color }]}

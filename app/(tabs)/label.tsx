@@ -1,15 +1,32 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { useLabels } from '@/src/hooks/useLabels';
-import { Ionicons } from '@expo/vector-icons';
+import DashboardShell from '@/components/dashboard-shell';
 import CreateLabelModal from '@/src/components/CreateLabelModal';
 import LabelList from '@/src/components/LabelList';
-import DashboardShell from '@/components/dashboard-shell';
+import { useLabels } from '@/src/hooks/useLabels';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, BackHandler, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useThemeStore } from '../../src/store/useThemeStore';
 
 export default function LabelsTab() {
   const { isLoading } = useLabels();
+  const router = useRouter();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === 'android') {
+          router.replace('/(tabs)/dashboard');
+          return true;
+        }
+        return false;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router])
+  );
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;

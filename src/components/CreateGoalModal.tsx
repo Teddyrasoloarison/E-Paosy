@@ -1,14 +1,15 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
-import { useForm, Controller, SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { useGoals } from '../hooks/useGoals';
-import { useWallets } from '../hooks/useWallets';
-import { goalSchema, GoalFormData } from '../utils/goalSchema';
-import { useAuthStore } from '../store/useAuthStore';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React from 'react';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
+import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useGoals } from '../hooks/useGoals';
+import { useModernAlert } from '../hooks/useModernAlert';
+import { useWallets } from '../hooks/useWallets';
+import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { GoalFormData, goalSchema } from '../utils/goalSchema';
 
 interface Props {
   visible: boolean;
@@ -24,6 +25,7 @@ export default function CreateGoalModal({ visible, onClose }: Props) {
   const { wallets } = useWallets();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const { success: showSuccess, error: showError } = useModernAlert();
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema) as any,
@@ -57,12 +59,12 @@ export default function CreateGoalModal({ visible, onClose }: Props) {
       },
       {
         onSuccess: () => {
-          Alert.alert("Bravo !", "Votre nouvel objectif est defini.");
+          showSuccess("Bravo !", "Votre nouvel objectif est défini.");
           reset();
           onClose();
         },
         onError: (err: any) => {
-          Alert.alert("Erreur", err.response?.data?.message || "Impossible de creer le objectif");
+          showError("Erreur", err.response?.data?.message || "Impossible de créer le objectif");
         }
       }
     );

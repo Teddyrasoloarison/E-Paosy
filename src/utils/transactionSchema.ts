@@ -14,7 +14,7 @@ export const transactionSchema = z.object({
   type: z.enum(['IN', 'OUT'] as const),
   date: z.string().or(z.date()),
   walletId: z.string().uuid("Sélectionnez un portefeuille valide"),
-  labels: z.array(z.string()).min(1, "Sélectionnez au moins un label"),
+  labels: z.string().optional(),
 });
 
 export type TransactionFormData = {
@@ -23,5 +23,5 @@ export type TransactionFormData = {
   type: TransactionType;
   date: string | Date;
   walletId: string;
-  labels: string[];
+  labels: string;
 };

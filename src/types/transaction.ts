@@ -41,5 +41,5 @@ export interface TransactionFormData {
   type: TransactionType;
   date: string | Date;
   walletId: string;
-  labels: string[]; // Le formulaire garde des strings pour la sélection
+  labels: string; // Un seul label (ou chaîne vide si aucun)
 }

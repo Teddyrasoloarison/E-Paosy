@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Alert, Platform, BackHandler } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { useLabels } from '../hooks/useLabels';
-import { labelSchema, LabelFormData } from '../utils/labelSchema';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useEffect } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useLabels } from '../hooks/useLabels';
+import { useModernAlert } from '../hooks/useModernAlert';
 import { useThemeStore } from '../store/useThemeStore';
+import { LabelFormData, labelSchema } from '../utils/labelSchema';
 
 interface Props {
   visible: boolean;
@@ -47,15 +48,17 @@ export default function CreateLabelModal({ visible, onClose }: Props) {
   const selectedColor = watch('color');
   const labelName = watch('name');
 
+  const { success: showSuccess, error: showError } = useModernAlert();
+
   const onSubmit = (data: LabelFormData) => {
     createLabel(data, {
       onSuccess: () => {
-        Alert.alert("Succes", "Label cree !");
+        showSuccess("Succès", "Label créé !");
         reset();
         onClose();
       },
       onError: (error: any) => {
-        Alert.alert("Erreur", error.response?.data?.message || "Erreur serveur");
+        showError("Erreur", error.response?.data?.message || "Erreur serveur");
       }
     });
   };
@@ -65,89 +68,91 @@ export default function CreateLabelModal({ visible, onClose }: Props) {
       <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
         <View style={[styles.content, { backgroundColor: theme.surface }]}>
           <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
-          
-          <View style={styles.header}>
-            <View style={[styles.titleIcon, { backgroundColor: selectedColor + '15' }]}>
-              <Ionicons name="pricetag" size={24} color={selectedColor} />
-            </View>
-            <View style={styles.titleContent}>
-              <Text style={[styles.title, { color: theme.text }]}>Nouveau Label</Text>
-              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Creez une nouvelle etiquette</Text>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close-circle" size={28} color={theme.textTertiary} />
-            </TouchableOpacity>
-          </View>
 
-          {/* Name Field */}
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Nom du label</Text>
-          <Controller
-            control={control}
-            name="name"
-            render={({ field: { onChange, value } }) => (
-              <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
-                <Ionicons name="pricetag-outline" size={20} color={selectedColor} />
-                <TextInput 
-                  style={[styles.input, { color: theme.text }]} 
-                  placeholder="Ex: Alimentation, Loyer..."
-                  placeholderTextColor={theme.textTertiary}
-                  value={value} 
-                  onChangeText={onChange} 
-                />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+              <View style={[styles.titleIcon, { backgroundColor: selectedColor + '15' }]}>
+                <Ionicons name="pricetag" size={24} color={selectedColor} />
               </View>
-            )}
-          />
-          {errors.name && <Text style={[styles.errorText, { color: theme.error }]}>{errors.name.message}</Text>}
-
-          {/* Color Selector */}
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Couleur</Text>
-          <View style={styles.colorContainer}>
-            {PRESET_COLORS.map((item) => (
-              <TouchableOpacity
-                key={item}
-                style={[
-                  styles.colorCircle, 
-                  { backgroundColor: item },
-                  selectedColor === item && styles.colorCircleSelected
-                ]}
-                onPress={() => setValue('color', item)}
-              >
-                {selectedColor === item && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                )}
+              <View style={styles.titleContent}>
+                <Text style={[styles.title, { color: theme.text }]}>Nouveau Label</Text>
+                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Creez une nouvelle etiquette</Text>
+              </View>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close-circle" size={28} color={theme.textTertiary} />
               </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Preview */}
-          <View style={[styles.previewCard, { backgroundColor: selectedColor + '15', borderColor: selectedColor }]}>
-            <View style={[styles.previewIcon, { backgroundColor: selectedColor }]}>
-              <Ionicons name="pricetag" size={20} color="#fff" />
             </View>
-            <View style={styles.previewContent}>
-              <Text style={[styles.previewText, { color: theme.text }]}>
-                {labelName || 'Apercu du label'}
-              </Text>
-              <Text style={[styles.previewSubtext, { color: theme.textSecondary }]}>
-                Comment il apparaitra
-              </Text>
-            </View>
-          </View>
 
-          {/* Submit Button */}
-          <TouchableOpacity 
-            style={[styles.submitBtn, { backgroundColor: selectedColor }, isCreating && { opacity: 0.7 }]} 
-            onPress={handleSubmit(onSubmit)}
-            disabled={isCreating}
-          >
-            {isCreating ? 
-              <ActivityIndicator color="#fff" /> : 
-              <View style={styles.submitContent}>
-                <Ionicons name="checkmark-circle" size={22} color="#fff" />
-                <Text style={styles.submitBtnText}>Creer le label</Text>
+            {/* Name Field */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Nom du label</Text>
+            <Controller
+              control={control}
+              name="name"
+              render={({ field: { onChange, value } }) => (
+                <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                  <Ionicons name="pricetag-outline" size={20} color={selectedColor} />
+                  <TextInput
+                    style={[styles.input, { color: theme.text }]}
+                    placeholder="Ex: Alimentation, Loyer..."
+                    placeholderTextColor={theme.textTertiary}
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                </View>
+              )}
+            />
+            {errors.name && <Text style={[styles.errorText, { color: theme.error }]}>{errors.name.message}</Text>}
+
+            {/* Color Selector */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Couleur</Text>
+            <View style={styles.colorContainer}>
+              {PRESET_COLORS.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[
+                    styles.colorCircle,
+                    { backgroundColor: item },
+                    selectedColor === item && styles.colorCircleSelected
+                  ]}
+                  onPress={() => setValue('color', item)}
+                >
+                  {selectedColor === item && (
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Preview */}
+            <View style={[styles.previewCard, { backgroundColor: selectedColor + '15', borderColor: selectedColor }]}>
+              <View style={[styles.previewIcon, { backgroundColor: selectedColor }]}>
+                <Ionicons name="pricetag" size={20} color="#fff" />
               </View>
-            }
-          </TouchableOpacity>
+              <View style={styles.previewContent}>
+                <Text style={[styles.previewText, { color: theme.text }]}>
+                  {labelName || 'Apercu du label'}
+                </Text>
+                <Text style={[styles.previewSubtext, { color: theme.textSecondary }]}>
+                  Comment il apparaitra
+                </Text>
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[styles.submitBtn, { backgroundColor: selectedColor }, isCreating && { opacity: 0.7 }]}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isCreating}
+            >
+              {isCreating ?
+                <ActivityIndicator color="#fff" /> :
+                <View style={styles.submitContent}>
+                  <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                  <Text style={styles.submitBtnText}>Creer le label</Text>
+                </View>
+              }
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
     </Modal>

@@ -1,24 +1,38 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
 import DashboardShell from '@/components/dashboard-shell';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../../src/store/useAuthStore';
-import WalletList from '../../src/components/WalletList';
-import CreateWalletModal from '../../src/components/CreateWalletModal';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { BackHandler, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import CreateWalletModal from '../../src/components/CreateWalletModal';
+import WalletList from '../../src/components/WalletList';
+import { useAuthStore } from '../../src/store/useAuthStore';
 import { useThemeStore } from '../../src/store/useThemeStore';
 
 export default function PortefeuilleScreen() {
+  const router = useRouter();
   const accountId = useAuthStore((state) => state.accountId);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === 'android') {
+          router.replace('/(tabs)/dashboard');
+          return true;
+        }
+        return false;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router])
+  );
   const [isModalVisible, setIsModalVisible] = useState(false);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
-    <DashboardShell 
-      title="Portefeuilles" 
-      subtitle="Gérez vos comptes"
-    >
+    <DashboardShell title="Portefeuilles" subtitle="Gérez vos comptes" icon="wallet-outline">
       
       {/* Account Badge */}
       <View style={[styles.accountBadge, { backgroundColor: theme.primary + '15' }]}>

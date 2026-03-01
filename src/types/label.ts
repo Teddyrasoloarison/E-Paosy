@@ -3,12 +3,15 @@ export interface LabelItem {
   name: string;
   color: string;
   iconRef?: string | null;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 export interface LabelPayload {
   name: string;
   color: string;
   iconRef?: string | null;
+  accountId?: string;
 }
 
 export interface LabelResponse {

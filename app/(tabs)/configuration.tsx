@@ -1,12 +1,29 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Platform, Switch, ScrollView } from 'react-native';
 import DashboardShell from '@/components/dashboard-shell';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { BackHandler, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useThemeStore } from '../../src/store/useThemeStore';
 
 export default function ConfigurationScreen() {
+  const router = useRouter();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === 'android') {
+          router.replace('/(tabs)/dashboard');
+          return true;
+        }
+        return false;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router])
+  );
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
@@ -28,7 +45,8 @@ export default function ConfigurationScreen() {
   );
 
   return (
-    <DashboardShell title="Configuration" subtitle="Paramètres de votre compte">
+    <DashboardShell title="Configuration" subtitle="Paramètres de votre compte" icon="options-outline">
+
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         
         {/* App Settings */}

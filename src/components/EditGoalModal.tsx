@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
-import { useForm, Controller, SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { useGoals } from '../hooks/useGoals';
-import { useWallets } from '../hooks/useWallets';
-import { goalSchema, GoalFormData } from '../utils/goalSchema';
-import { GoalItem } from '../types/goal';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useEffect } from 'react';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
+import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useGoals } from '../hooks/useGoals';
+import { useModernAlert } from '../hooks/useModernAlert';
+import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
+import { GoalItem } from '../types/goal';
+import { GoalFormData, goalSchema } from '../utils/goalSchema';
 
 interface Props {
   visible: boolean;
@@ -47,11 +48,13 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
   const selectedIcon = watch('iconRef');
   const selectedWalletId = watch('walletId');
 
+  const { success: showSuccess, error: showError } = useModernAlert();
+
   const onSubmit: SubmitHandler<GoalFormData> = (data) => {
     updateGoal(
       { 
         goalId: goal.id,
-        walletId: data.walletId, 
+        walletId: goal.walletId, 
         data: {
           ...data,
           accountId: goal.accountId,
@@ -61,11 +64,11 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
       },
       {
         onSuccess: () => {
-          Alert.alert("Succes", "Objectif mis a jour avec succes !");
+          showSuccess("Succès", "Objectif mis à jour avec succès !");
           onClose();
         },
         onError: (err: any) => {
-          Alert.alert("Erreur", err.response?.data?.message || "Erreur de mise a jour");
+          showError("Erreur", err.response?.data?.message || "Erreur de mise à jour");
         }
       }
     );

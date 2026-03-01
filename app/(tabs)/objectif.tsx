@@ -1,18 +1,35 @@
-import React, { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import DashboardShell from '@/components/dashboard-shell';
 import { Ionicons } from '@expo/vector-icons';
-import { useGoals } from '../../src/hooks/useGoals';
-import { GoalCard } from '../../src/components/GoalCard';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, BackHandler, FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/colors';
 import CreateGoalModal from '../../src/components/CreateGoalModal';
 import EditGoalModal from '../../src/components/EditGoalModal';
-import { GoalItem } from '../../src/types/goal';
-import { Colors } from '../../constants/colors';
+import { GoalCard } from '../../src/components/GoalCard';
+import { useGoals } from '../../src/hooks/useGoals';
 import { useThemeStore } from '../../src/store/useThemeStore';
+import { GoalItem } from '../../src/types/goal';
 
 export default function ObjectifScreen() {
+  const router = useRouter();
   const { goals, isLoading } = useGoals();
   const [isCreateVisible, setCreateVisible] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === 'android') {
+          router.replace('/(tabs)/dashboard');
+          return true;
+        }
+        return false;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router])
+  );
   const [selectedGoal, setSelectedGoal] = useState<GoalItem | null>(null);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
@@ -24,7 +41,7 @@ export default function ObjectifScreen() {
   }, [goals]);
 
   return (
-    <DashboardShell title="Objectifs" subtitle="Suivez vos objectifs financiers">
+    <DashboardShell title="Objectifs" subtitle="Suivez vos objectifs financiers" icon="trophy-outline">
       
       {isLoading ? (
         <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />

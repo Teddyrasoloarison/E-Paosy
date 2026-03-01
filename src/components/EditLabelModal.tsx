@@ -1,13 +1,15 @@
-import React, { useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, Alert, Platform, BackHandler } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { useLabels } from '../hooks/useLabels';
-import { labelSchema, LabelFormData } from '../utils/labelSchema';
-import { LabelItem, LabelPayload } from '../types/label';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useLabels } from '../hooks/useLabels';
+import { useModernAlert } from '../hooks/useModernAlert';
+import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { LabelItem, LabelPayload } from '../types/label';
+import { LabelFormData, labelSchema } from '../utils/labelSchema';
 
 interface Props {
     visible: boolean;
@@ -19,8 +21,17 @@ const COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F'
 
 export default function EditLabelModal({ visible, onClose, label }: Props) {
     const { updateLabel, isUpdating } = useLabels();
+    const accountId = useAuthStore((state) => state.accountId);
     const isDarkMode = useThemeStore((state) => state.isDarkMode);
     const theme = isDarkMode ? Colors.dark : Colors.light;
+    
+    // State to track the initial color from the label prop
+    const [initialColor, setInitialColor] = useState(label.color);
+
+    // Update initial color when label changes
+    useEffect(() => {
+        setInitialColor(label.color);
+    }, [label.id, label.color]);
 
     const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<LabelFormData>({
         resolver: zodResolver(labelSchema),
@@ -32,12 +43,14 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
 
     useEffect(() => {
         if (visible) {
+            // Reset form with the label's current color when modal opens
+            setInitialColor(label.color);
             reset({
                 name: label.name,
                 color: label.color,
             });
         }
-    }, [label, visible, reset]);
+    }, [visible, label.id, label.name, label.color, reset]);
 
     // Handle hardware back button on Android
     useEffect(() => {
@@ -54,10 +67,14 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
     const selectedColor = watch('color');
     const labelName = watch('name');
 
+    // alert helpers must be obtained at top level of component
+    const { success: showSuccess, error: showError } = useModernAlert();
+
     const onSubmit = (data: LabelFormData) => {
         const payload: LabelPayload = {
             name: data.name,
-            color: data.color
+            color: data.color,
+            accountId: accountId!
         };
 
         updateLabel(
@@ -67,11 +84,11 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
             },
             {
                 onSuccess: () => {
-                    Alert.alert("Succes", "Label mis a jour");
+                    showSuccess("Succès", "Label mis à jour");
                     onClose();
                 },
                 onError: (error: any) => {
-                    Alert.alert("Erreur", error.response?.data?.message || "Erreur de mise a jour");
+                    showError("Erreur", error.response?.data?.message || "Erreur de mise à jour");
                 }
             }
         );
@@ -82,7 +99,7 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
             <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
                 <View style={[styles.content, { backgroundColor: theme.surface }]}>
                     <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
-                    
+                    <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.header}>
                         <View style={[styles.titleIcon, { backgroundColor: selectedColor + '15' }]}>
                             <Ionicons name="pricetag" size={24} color={selectedColor} />
@@ -166,6 +183,7 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
                             </View>
                         )}
                     </TouchableOpacity>
+                    </ScrollView>
                 </View>
             </View>
         </Modal>

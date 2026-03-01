@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Text, Platform } from 'react-native';
 import DashboardShell from '@/components/dashboard-shell';
 import { Ionicons } from '@expo/vector-icons';
-import TransactionList from '../../src/components/TransactionList';
-import CreateTransactionModal from '../../src/components/CreateTransactionModal';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { BackHandler, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import CreateTransactionModal from '../../src/components/CreateTransactionModal';
+import TransactionList from '../../src/components/TransactionList';
 import { useThemeStore } from '../../src/store/useThemeStore';
 
 export default function TransactionScreen() {
+  const router = useRouter();
   const [isCreateVisible, setCreateVisible] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (Platform.OS === 'android') {
+          router.replace('/(tabs)/dashboard');
+          return true;
+        }
+        return false;
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [router])
+  );
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
-    <DashboardShell title="Transactions" subtitle="Suivez vos flux financiers">
+    <DashboardShell title="Transactions" subtitle="Suivez vos flux financiers" icon="swap-vertical-outline">
       
       <View style={styles.container}>
         <TransactionList />

@@ -11,6 +11,8 @@ export default function TabLayout() {
       <Stack.Screen name="transaction" />
       <Stack.Screen name="objectif" />
       <Stack.Screen name="configuration" />
+      <Stack.Screen name="projet" />
+      <Stack.Screen name="projet/[id]" />
     </Stack>
   );
 }

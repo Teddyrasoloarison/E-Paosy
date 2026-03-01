@@ -23,6 +23,7 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Portefeuille', route: '/(tabs)/portefeuille', icon: 'wallet-outline' },
   { label: 'Transactions', route: '/(tabs)/transaction', icon: 'swap-vertical-outline' },
   { label: 'Objectifs', route: '/(tabs)/objectif', icon: 'trophy-outline' },
+  { label: 'Projets', route: '/(tabs)/projet', icon: 'flag-outline' },
   { label: 'Configuration', route: '/(tabs)/configuration', icon: 'options-outline' },
 ];
 

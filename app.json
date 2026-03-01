@@ -31,8 +31,7 @@
         "hidden": false
       },
       "navigationBar": {
-        "backgroundColor": "transparent",
-        "visible": "sticky-immersive",
+        "backgroundColor": "transparent"
       }
     },
     "web": {

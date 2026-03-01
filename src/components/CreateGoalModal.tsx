@@ -16,7 +16,7 @@ interface Props {
   onClose: () => void;
 }
 
-const PRESET_COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F', '#2563EB', '#059669'];
+const PRESET_COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
 const PRESET_ICONS = ['cart', 'airplane', 'car', 'home', 'gift', 'school', 'phone-portrait', 'fitness'];
 
 export default function CreateGoalModal({ visible, onClose }: Props) {

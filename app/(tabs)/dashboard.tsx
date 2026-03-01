@@ -14,6 +14,7 @@ import CreateWalletModal from '../../src/components/CreateWalletModal';
 import { useModernAlert } from '../../src/hooks/useModernAlert';
 import { useAuthStore } from '../../src/store/useAuthStore';
 import { useThemeStore } from '../../src/store/useThemeStore';
+import WeeklyExpenseChart from '../../src/components/WeeklyExpenseChart';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -211,6 +212,14 @@ const [showAllActivities, setShowAllActivities] = useState(false);
           </View>
         </Animated.View>
 
+        {/* Chart section - Animated */}
+        <Animated.View style={[getAnimStyle(chartAnim)]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Analyse des depenses et revenus</Text>
+          </View>
+            <WeeklyExpenseChart transactions={transactions} />
+        </Animated.View>
+
         {/* Statistics Cards - Animated */}
         <Animated.View style={[getAnimStyle(statsAnim)]}>
           <View style={styles.sectionHeader}>
@@ -277,174 +286,6 @@ const [showAllActivities, setShowAllActivities] = useState(false);
               ) : (
                 <Text style={[styles.emptyText, { color: theme.textTertiary }]}>Aucun portefeuille inactif.</Text>
               )}
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* Recent Activity Section - Animated */}
-        <Animated.View style={[getAnimStyle(activityAnim)]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Transaction recente</Text>
-          </View>
-          <View style={[
-            styles.activitySection, 
-            { 
-              backgroundColor: theme.surface, 
-              borderColor: theme.border,
-            }
-          ]}>
-            <View style={styles.activityHeader}>
-              <View style={styles.activityTitleRow}>
-              </View>
-              <TouchableOpacity onPress={handleViewAllActivities}>
-                <Text style={[styles.viewAllText, { color: theme.primary }]}>
-                  {showAllActivities ? 'Réduire' : 'Voir tout'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {recentTransactions.length > 0 ? (
-              <View style={styles.activityList}>
-                {recentTransactions.map((transaction, index) => {
-                  const isIncome = transaction.type?.toString().trim().toUpperCase() === 'IN';
-                  const wallet = wallets.find(w => w.id === transaction.walletId);
-                  const walletName = wallet?.name || 'Portefeuille';
-                  const walletColor = wallet?.color || theme.primary;
-                  const isWalletActive = wallet?.isActive ?? true;
-                  
-                  // Format date with time
-                  const formatDateTime = (dateStr: string) => {
-                    const date = new Date(dateStr);
-                    return date.toLocaleDateString('fr-FR', { 
-                      day: '2-digit', 
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    });
-                  };
-                  
-                  return (
-                    <View 
-                      key={transaction.id} 
-                      style={[
-                        styles.activityItem, 
-                        { 
-                          borderBottomColor: theme.border,
-                          backgroundColor: isWalletActive ? 'transparent' : theme.background + '50',
-                        },
-                        index === recentTransactions.length - 1 && styles.noBorder
-                      ]}
-                    >
-                      {/* Type Icon */}
-                      <View style={[
-                        styles.activityIcon, 
-                        { backgroundColor: (isIncome ? theme.success : theme.error) + '15' }
-                      ]}>
-                        <Ionicons 
-                          name={isIncome ? 'arrow-down-circle' : 'arrow-up-circle'} 
-                          size={22} 
-                          color={isIncome ? theme.success : theme.error} 
-                        />
-                      </View>
-                      
-                      {/* Transaction Info */}
-                      <View style={styles.activityInfo}>
-                        <View style={styles.activityTopRow}>
-                          <Text style={[styles.activityDesc, { color: theme.text }]} numberOfLines={1}>
-                            {transaction.description || 'Transaction'}
-                          </Text>
-                        </View>
-                        
-                        {/* Meta row: Date */}
-                        <View style={styles.activityMeta}>
-                          <View style={styles.metaLeft}>
-                            <Ionicons name="time-outline" size={10} color={theme.textTertiary} />
-                            <Text style={[styles.activityDate, { color: theme.textTertiary }]}>
-                              {transaction.date ? formatDateTime(transaction.date) : ''}
-                            </Text>
-                          </View>
-                        </View>
-                        
-                        {/* Wallet + Labels row */}
-                        <View style={styles.walletLabelRow}>
-                          <View style={styles.walletRow}>
-                            <View style={[
-                              styles.walletDot, 
-                              { backgroundColor: isWalletActive ? walletColor : theme.textTertiary }
-                            ]} />
-                            <Text style={[
-                              styles.walletName, 
-                              { color: isWalletActive ? walletColor : theme.textTertiary }
-                            ]} numberOfLines={1}>
-                              {walletName}
-                            </Text>
-                            {!isWalletActive && (
-                              <Text style={[styles.inactiveTag, { color: theme.error }]}> - Inactif</Text>
-                            )}
-                          </View>
-                          
-                          {/* Labels */}
-                          {transaction.labels && transaction.labels.length > 0 && (
-                            <View style={styles.labelRow}>
-                              {transaction.labels.slice(0, 2).map((label, labelIndex) => (
-                                <View 
-                                  key={label.id} 
-                                  style={[
-                                    styles.labelBadge, 
-                                    { backgroundColor: label.color + '20' }
-                                  ]}
-                                >
-                                  <View style={[styles.labelDot, { backgroundColor: label.color }]} />
-                                  <Text style={[styles.labelText, { color: label.color }]}>
-                                    {label.name}
-                                  </Text>
-                                </View>
-                              ))}
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                      
-                      {/* Amount */}
-                      <View style={styles.amountContainer}>
-                        <Text style={[
-                          styles.activityAmount, 
-                          { color: isIncome ? theme.success : theme.error }
-                        ]}>
-                          {isIncome ? '+' : '-'}{Math.abs(Number(transaction.amount)).toLocaleString()} Ar
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.emptyActivity}>
-                <View style={[styles.emptyIconWrapper, { backgroundColor: theme.primary + '15' }]}>
-                  <Ionicons name="receipt-outline" size={36} color={theme.primary} />
-                </View>
-                <Text style={[styles.emptyActivityText, { color: theme.textSecondary }]}>
-                 Aucune activite recente
-                </Text>
-                <Text style={[styles.emptyActivitySubtext, { color: theme.textTertiary }]}>
-                  Ajoutez une transaction pour commencer
-                </Text>
-              </View>
-            )}
-          </View>
-        </Animated.View>
-
-        {/* Chart section - Animated */}
-        <Animated.View style={[getAnimStyle(chartAnim)]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Analyse des depenses</Text>
-          </View>
-          <View style={[styles.chartCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={[styles.chartPlaceholder, { backgroundColor: theme.backgroundSecondary }]}>
-              <Ionicons name="bar-chart-outline" size={40} color={theme.textTertiary} />
-              <Text style={[styles.chartPlaceholderText, { color: theme.textTertiary }]}>
-                Visualisation des depenses a venir
-              </Text>
             </View>
           </View>
         </Animated.View>

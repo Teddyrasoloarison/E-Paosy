@@ -30,7 +30,7 @@ const WALLET_TYPES: { type: WalletType; icon: string; label: string }[] = [
   { type: 'DEBT', icon: 'person-remove', label: 'Dette' },
 ];
 
-const PRESET_COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F', '#2563EB', '#059669'];
+const PRESET_COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
 
 export default function CreateWalletModal({ visible, onClose }: Props) {
   const { createWallet, isCreating } = useWallets();

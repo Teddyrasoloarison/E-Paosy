@@ -17,7 +17,7 @@ interface Props {
     label: LabelItem;
 }
 
-const COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F', '#2563EB', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#4F46E5'];
+const COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
 
 export default function EditLabelModal({ visible, onClose, label }: Props) {
     const { updateLabel, isUpdating } = useLabels();

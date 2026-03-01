@@ -103,7 +103,7 @@ export default function LabelList() {
                   style={[styles.actionBtn, { backgroundColor: theme.error + '15' }]}
                   onPress={() => handleArchive(item)}
                 >
-                  <Ionicons name="archive" size={16} color={theme.error} />
+                  <Ionicons name="trash-outline" size={16} color={theme.error} />
                 </TouchableOpacity>
               </View>
             </View>

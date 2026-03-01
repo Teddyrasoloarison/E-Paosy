@@ -18,21 +18,23 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Dashboard', route: '/(tabs)/dashboard', icon: 'grid-outline' },
-  { label: 'Labels', route: '/(tabs)/label', icon: 'pricetag-outline' },
+  { label: 'Dashboard', route: '/(tabs)/dashboard', icon: 'bar-chart-outline' },
+  { label: 'Labels', route: '/(tabs)/label', icon: 'pricetags-outline' },
   { label: 'Portefeuille', route: '/(tabs)/portefeuille', icon: 'wallet-outline' },
-  { label: 'Transactions', route: '/(tabs)/transaction', icon: 'swap-horizontal-outline' },
-  { label: 'Objectifs', route: '/(tabs)/objectif', icon: 'flag-outline' },
-  { label: 'Configuration', route: '/(tabs)/configuration', icon: 'settings-outline' },
+  { label: 'Transactions', route: '/(tabs)/transaction', icon: 'swap-vertical-outline' },
+  { label: 'Objectifs', route: '/(tabs)/objectif', icon: 'trophy-outline' },
+  { label: 'Configuration', route: '/(tabs)/configuration', icon: 'options-outline' },
 ];
 
 interface DashboardShellProps {
   title: string;
   subtitle?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  onIconPress?: () => void;
   children: ReactNode;
 }
 
-export default function DashboardShell({ title, subtitle, children }: DashboardShellProps) {
+export default function DashboardShell({ title, subtitle, icon, onIconPress, children }: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const logout = useAuthStore((state) => state.logout);
@@ -74,6 +76,14 @@ export default function DashboardShell({ title, subtitle, children }: DashboardS
           <Text style={[styles.headerTitle, { color: theme.text }]}>{title}</Text>
           {subtitle && <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>}
         </View>
+        {icon && (
+          <TouchableOpacity 
+            style={[styles.menuButton, { backgroundColor: theme.surface }]}
+            onPress={onIconPress}
+          >
+            <Ionicons name={icon} size={24} color={theme.primary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {children}
@@ -264,7 +274,7 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 23, 42, 0.5)',
-    zIndex: 10,
+    zIndex: 150,
   },
   drawer: {
     position: 'absolute',
@@ -274,7 +284,7 @@ const styles = StyleSheet.create({
     width: 280,
     paddingTop: 60,
     paddingHorizontal: 16,
-    zIndex: 11,
+    zIndex: 200,
     ...Platform.select({
       ios: {
         shadowColor: '#000',

@@ -30,7 +30,7 @@ export default function TransactionScreen() {
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
-    <DashboardShell title="Transactions" subtitle="Suivez vos flux financiers">
+    <DashboardShell title="Transactions" subtitle="Suivez vos flux financiers" icon="swap-vertical-outline">
       
       <View style={styles.container}>
         <TransactionList />

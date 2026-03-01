@@ -45,7 +45,8 @@ export default function ConfigurationScreen() {
   );
 
   return (
-    <DashboardShell title="Configuration" subtitle="Paramètres de votre compte">
+    <DashboardShell title="Configuration" subtitle="Paramètres de votre compte" icon="options-outline">
+
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         
         {/* App Settings */}

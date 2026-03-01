@@ -12,7 +12,10 @@ export const walletSchema = z.object({
     .max(50, "La description est trop longue")
     .optional()
     .or(z.literal('')),
-  type: z.enum(['CASH', 'MOBILE_MONEY', 'BANK', 'DEBT'])
+  type: z.enum(['CASH', 'MOBILE_MONEY', 'BANK', 'DEBT']),
+  color: z.string().startsWith("#", "Couleur invalide").optional(),
+  iconRef: z.string().min(1, "L'icône est requise").optional(),
+  isActive: z.boolean().optional(),
 });
 
 /**

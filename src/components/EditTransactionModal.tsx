@@ -52,14 +52,14 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
         amount: transaction.amount,
         type: normalizedType === 'IN' ? 'IN' : 'OUT',
         walletId: transaction.walletId,
-        labels: transaction.labels.map(l => l.id),
+        labels: transaction.labels && transaction.labels.length > 0 ? transaction.labels[0].id : '',
         date: transaction.date,
       });
     }
   }, [transaction, visible, reset]);
 
   const selectedType = watch('type');
-  const selectedLabels = watch('labels') || [];
+  const selectedLabel = watch('labels') || '';
   const selectedWalletId = watch('walletId');
 
   const { success: showSuccess, error: showError } = useModernAlert();
@@ -81,7 +81,7 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
           description: data.description,
           amount: data.amount,
           type: finalType,
-          labels: data.labels.map(labelId => ({ id: labelId })),
+          labels: data.labels ? [{ id: data.labels }] : [],
           date: new Date(data.date).toISOString(),
           walletId: data.walletId,
           accountId: transaction.accountId
@@ -100,11 +100,12 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
   };
 
   const toggleLabel = (id: string) => {
-    const current = [...selectedLabels];
-    const index = current.indexOf(id);
-    if (index > -1) current.splice(index, 1);
-    else current.push(id);
-    setValue('labels', current);
+    // Only allow ONE label - if same label is clicked, deselect it
+    if (selectedLabel === id) {
+      setValue('labels', '');
+    } else {
+      setValue('labels', id);
+    }
   };
 
   return (
@@ -168,16 +169,35 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
             {/* Wallet */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Portefeuille</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorScroll}>
-              {wallets.map((w) => (
-                <TouchableOpacity 
-                  key={w.id} 
-                  style={[styles.chip, { backgroundColor: theme.background }, selectedWalletId === w.id && { backgroundColor: theme.primary }]}
-                  onPress={() => setValue('walletId', w.id)}
-                >
-                  <Ionicons name="wallet-outline" size={14} color={selectedWalletId === w.id ? '#fff' : theme.textSecondary} />
-                  <Text style={{ color: selectedWalletId === w.id ? '#fff' : theme.text, marginLeft: 6 }}>{w.name}</Text>
-                </TouchableOpacity>
-              ))}
+              {wallets.map((w) => {
+                const isDisabled = w.isActive === false;
+                return (
+                  <TouchableOpacity 
+                    key={w.id} 
+                    style={[
+                      styles.chip, 
+                      { backgroundColor: theme.background }, 
+                      selectedWalletId === w.id && { backgroundColor: theme.primary },
+                      isDisabled && { backgroundColor: theme.border }
+                    ]}
+                    onPress={() => !isDisabled && setValue('walletId', w.id)}
+                    disabled={isDisabled}
+                  >
+                    <Ionicons 
+                      name="wallet-outline" 
+                      size={14} 
+                      color={selectedWalletId === w.id ? '#fff' : isDisabled ? theme.textSecondary : theme.textSecondary} 
+                    />
+                    <Text style={{ 
+                      color: selectedWalletId === w.id ? '#fff' : isDisabled ? theme.textSecondary : theme.text, 
+                      marginLeft: 6 
+                    }}>
+                      {w.name}
+                      {isDisabled && ' (Désactivé)'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
             {/* Description */}
@@ -199,16 +219,16 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
               )}
             />
 
-            {/* Labels */}
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Labels</Text>
+            {/* Labels - Single Selection with None option */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Label (unique)</Text>
             <View style={styles.labelsGrid}>
               {labels?.map((l: LabelItem) => (
                 <TouchableOpacity 
                   key={l.id} 
-                  style={[styles.labelChip, { borderColor: l.color }, selectedLabels.includes(l.id) && { backgroundColor: l.color }]}
+                  style={[styles.labelChip, { borderColor: l.color }, selectedLabel === l.id && { backgroundColor: l.color }]}
                   onPress={() => toggleLabel(l.id)}
                 >
-                  <Text style={{ color: selectedLabels.includes(l.id) ? '#fff' : l.color, fontWeight: '600' }}>{l.name}</Text>
+                  <Text style={{ color: selectedLabel === l.id ? '#fff' : l.color, fontWeight: '600' }}>{l.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>

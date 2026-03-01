@@ -32,10 +32,7 @@ export default function PortefeuilleScreen() {
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
-    <DashboardShell 
-      title="Portefeuilles" 
-      subtitle="Gérez vos comptes"
-    >
+    <DashboardShell title="Portefeuilles" subtitle="Gérez vos comptes" icon="wallet-outline">
       
       {/* Account Badge */}
       <View style={[styles.accountBadge, { backgroundColor: theme.primary + '15' }]}>

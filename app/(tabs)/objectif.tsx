@@ -41,7 +41,7 @@ export default function ObjectifScreen() {
   }, [goals]);
 
   return (
-    <DashboardShell title="Objectifs" subtitle="Suivez vos objectifs financiers">
+    <DashboardShell title="Objectifs" subtitle="Suivez vos objectifs financiers" icon="trophy-outline">
       
       {isLoading ? (
         <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />

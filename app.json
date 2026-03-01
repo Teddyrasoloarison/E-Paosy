@@ -26,7 +26,14 @@
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ],
-      "package": "com.niavo.EPaosy"
+      "package": "com.niavo.EPaosy",
+      "statusBar": {
+        "hidden": false
+      },
+      "navigationBar": {
+        "backgroundColor": "transparent",
+        "visible": "sticky-immersive",
+      }
     },
     "web": {
       "output": "static",

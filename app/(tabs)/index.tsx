@@ -136,8 +136,8 @@ export default function WelcomeScreen() {
               }}
               activeOpacity={0.9}
             >
-              <Text style={styles.primaryButtonText}>Ouvrir un compte</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              <Text style={styles.primaryButtonText}>Créer un compte</Text>
+              <Ionicons name="person-add-outline" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </Animated.View>
 
@@ -194,18 +194,18 @@ const styles = StyleSheet.create({
     flex: 1, 
     paddingHorizontal: 24, 
     justifyContent: 'center', 
-    paddingVertical: 28,
+    paddingVertical: 10,
   },
   logoSection: { 
     alignItems: 'center', 
     marginTop: 20,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   featureCard: {
     borderRadius: 18,
     padding: 18,
-    marginTop: 24,
-    marginBottom: 24,
+    marginTop: 12,
+    marginBottom: 12,
     borderWidth: 1,
     gap: 14,
     ...Platform.select({
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   actionSection: { 
     gap: 14, 
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   primaryButton: { 
     paddingVertical: 18, 
@@ -275,10 +275,10 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 16,
-    marginTop: 16,
+    marginTop: 8,
     alignSelf: 'center',
     width: '100%',
   },

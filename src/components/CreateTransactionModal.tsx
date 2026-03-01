@@ -34,13 +34,13 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
       amount: 0,
       type: 'OUT',
       walletId: '',
-      labels: [],
+      labels: '',
       date: new Date().toISOString(),
     }
   });
 
   const selectedType = watch('type');
-  const selectedLabels = watch('labels') || [];
+  const selectedLabel = watch('labels') || '';
   const selectedWalletId = watch('walletId');
 
   const onSubmit: SubmitHandler<TransactionFormData> = (data) => {
@@ -52,7 +52,7 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
         description: data.description,
         amount: Number(data.amount),
         type: data.type,
-        labels: data.labels.map(labelId => ({ id: labelId })),
+        labels: data.labels ? [{ id: data.labels }] : [],
         date: new Date(data.date).toISOString(),
         walletId: data.walletId,
         accountId: accountId
@@ -72,11 +72,12 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
   };
 
   const toggleLabel = (id: string) => {
-    const current = [...selectedLabels];
-    const index = current.indexOf(id);
-    if (index > -1) current.splice(index, 1);
-    else current.push(id);
-    setValue('labels', current);
+    // Only allow ONE label - if same label is clicked, deselect it
+    if (selectedLabel === id) {
+      setValue('labels', '');
+    } else {
+      setValue('labels', id);
+    }
   };
 
   return (
@@ -159,20 +160,35 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
             {/* Wallet */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Portefeuille</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorScroll}>
-              {wallets.map((w) => (
-                <TouchableOpacity
-                  key={w.id}
-                  style={[
-                    styles.chip, 
-                    { backgroundColor: theme.background },
-                    selectedWalletId === w.id && { backgroundColor: theme.primary }
-                  ]}
-                  onPress={() => setValue('walletId', w.id)}
-                >
-                  <Ionicons name="wallet-outline" size={14} color={selectedWalletId === w.id ? '#fff' : theme.textSecondary} />
-                  <Text style={{ color: selectedWalletId === w.id ? '#fff' : theme.text, marginLeft: 6 }}>{w.name}</Text>
-                </TouchableOpacity>
-              ))}
+              {wallets.map((w) => {
+                const isDisabled = w.isActive === false;
+                return (
+                  <TouchableOpacity
+                    key={w.id}
+                    style={[
+                      styles.chip, 
+                      { backgroundColor: theme.background },
+                      selectedWalletId === w.id && { backgroundColor: theme.primary },
+                      isDisabled && { opacity: 0.5, backgroundColor: theme.border }
+                    ]}
+                    onPress={() => !isDisabled && setValue('walletId', w.id)}
+                    disabled={isDisabled}
+                  >
+                    <Ionicons 
+                      name="wallet-outline" 
+                      size={14} 
+                      color={selectedWalletId === w.id ? '#fff' : isDisabled ? theme.textTertiary : theme.textSecondary} 
+                    />
+                    <Text style={{ 
+                      color: selectedWalletId === w.id ? '#fff' : isDisabled ? theme.textTertiary : theme.text, 
+                      marginLeft: 6 
+                    }}>
+                      {w.name}
+                      {isDisabled && ' (Désactivé)'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
             {errors.walletId && <Text style={[styles.errorText, { color: theme.error }]}>{errors.walletId.message}</Text>}
 
@@ -195,8 +211,8 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
               )}
             />
 
-            {/* Labels */}
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Labels</Text>
+            {/* Labels - Single Selection with None option */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Label (unique)</Text>
             <View style={styles.labelsGrid}>
               {labels?.map((l: LabelItem) => (
                 <TouchableOpacity
@@ -204,11 +220,11 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
                   style={[
                     styles.labelChip, 
                     { borderColor: l.color },
-                    selectedLabels.includes(l.id) && { backgroundColor: l.color }
+                    selectedLabel === l.id && { backgroundColor: l.color }
                   ]}
                   onPress={() => toggleLabel(l.id)}
                 >
-                  <Text style={{ color: selectedLabels.includes(l.id) ? '#fff' : l.color, fontWeight: '600' }}>{l.name}</Text>
+                  <Text style={{ color: selectedLabel === l.id ? '#fff' : l.color, fontWeight: '600' }}>{l.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>

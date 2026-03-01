@@ -32,7 +32,8 @@ export default function LabelsTab() {
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
-    <DashboardShell title="Labels" subtitle="Organisez vos transactions">
+    <DashboardShell title="Labels" subtitle="Organisez vos transactions" icon="pricetags-outline">
+      
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />

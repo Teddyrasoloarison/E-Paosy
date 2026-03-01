@@ -54,7 +54,7 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
     updateGoal(
       { 
         goalId: goal.id,
-        walletId: data.walletId, 
+        walletId: goal.walletId, 
         data: {
           ...data,
           accountId: goal.accountId,

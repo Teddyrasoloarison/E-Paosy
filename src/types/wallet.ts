@@ -18,18 +18,25 @@ export interface Wallet {
   accountId: string;
   isActive: boolean;
   walletAutomaticIncome?: WalletAutomaticIncome;
+  color?: string;
+  iconRef?: string;
 }
 
 export interface CreateWalletDto {
   name: string;
   description?: string;
   type: WalletType;
+  color?: string;
+  iconRef?: string;
 }
 
 export interface UpdateWalletDto {
   name?: string;
   description?: string;
   type?: WalletType;
+  color?: string;
+  iconRef?: string;
+  isActive?: boolean;
 }
 
 // ✅ Doit être identique à WalletAutomaticIncome pour le PUT

@@ -100,7 +100,9 @@ export default function DashboardScreen() {
   const [isGoalModalVisible, setGoalModalVisible] = useState(false);
   const [isLabelModalVisible, setLabelModalVisible] = useState(false);
   const [isWalletModalVisible, setWalletModalVisible] = useState(false);
-  const [showAllActivities, setShowAllActivities] = useState(false);
+const [showAllActivities, setShowAllActivities] = useState(false);
+  const [showAllActiveWallets, setShowAllActiveWallets] = useState(false);
+  const [showAllInactiveWallets, setShowAllInactiveWallets] = useState(false);
 
   // Filter wallets by active status
   const activeWallets = wallets.filter(w => w.isActive === true);
@@ -225,7 +227,7 @@ export default function DashboardScreen() {
               </View>
               {activeWalletsCount > 0 ? (
                 <View style={styles.walletNamesList}>
-                  {activeWallets.slice(0, 3).map((wallet) => (
+                  {(showAllActiveWallets ? activeWallets : activeWallets.slice(0, 3)).map((wallet) => (
                     <View key={wallet.id} style={styles.walletNameItem}>
                       <View style={[styles.walletDot, { backgroundColor: theme.success }]} />
                       <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>
@@ -234,9 +236,11 @@ export default function DashboardScreen() {
                     </View>
                   ))}
                   {activeWalletsCount > 3 && (
-                    <Text style={[styles.moreText, { color: theme.textTertiary }]}>
-                      +{activeWalletsCount - 3} plus
-                    </Text>
+                    <TouchableOpacity onPress={() => setShowAllActiveWallets(!showAllActiveWallets)}>
+                      <Text style={[styles.moreText, { color: theme.primary }]}>
+                        {showAllActiveWallets ? 'Réduire' : 'voir plus'}
+                      </Text>
+                    </TouchableOpacity>
                   )}
                 </View>
               ) : (
@@ -254,7 +258,7 @@ export default function DashboardScreen() {
               </View>
               {inactiveWalletsCount > 0 ? (
                 <View style={styles.walletNamesList}>
-                  {inactiveWallets.slice(0, 3).map((wallet) => (
+                  {(showAllInactiveWallets ? inactiveWallets : inactiveWallets.slice(0, 3)).map((wallet) => (
                     <View key={wallet.id} style={styles.walletNameItem}>
                       <View style={[styles.walletDot, { backgroundColor: theme.textTertiary }]} />
                       <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>
@@ -263,9 +267,11 @@ export default function DashboardScreen() {
                     </View>
                   ))}
                   {inactiveWalletsCount > 3 && (
-                    <Text style={[styles.moreText, { color: theme.textTertiary }]}>
-                      +{inactiveWalletsCount - 3} plus
-                    </Text>
+                    <TouchableOpacity onPress={() => setShowAllInactiveWallets(!showAllInactiveWallets)}>
+                      <Text style={[styles.moreText, { color: theme.primary }]}>
+                        {showAllInactiveWallets ? 'Réduire' : 'voir plus'}
+                      </Text>
+                    </TouchableOpacity>
                   )}
                 </View>
               ) : (
@@ -280,7 +286,13 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Transaction recente</Text>
           </View>
-          <View style={[styles.activitySection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[
+            styles.activitySection, 
+            { 
+              backgroundColor: theme.surface, 
+              borderColor: theme.border,
+            }
+          ]}>
             <View style={styles.activityHeader}>
               <View style={styles.activityTitleRow}>
               </View>
@@ -297,50 +309,125 @@ export default function DashboardScreen() {
                   const isIncome = transaction.type?.toString().trim().toUpperCase() === 'IN';
                   const wallet = wallets.find(w => w.id === transaction.walletId);
                   const walletName = wallet?.name || 'Portefeuille';
+                  const walletColor = wallet?.color || theme.primary;
+                  const isWalletActive = wallet?.isActive ?? true;
+                  
+                  // Format date with time
+                  const formatDateTime = (dateStr: string) => {
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString('fr-FR', { 
+                      day: '2-digit', 
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                  };
+                  
                   return (
                     <View 
                       key={transaction.id} 
                       style={[
                         styles.activityItem, 
-                        { borderBottomColor: theme.border },
+                        { 
+                          borderBottomColor: theme.border,
+                          backgroundColor: isWalletActive ? 'transparent' : theme.background + '50',
+                        },
                         index === recentTransactions.length - 1 && styles.noBorder
                       ]}
                     >
-                      <View style={[styles.activityIcon, { backgroundColor: (isIncome ? theme.success : theme.error) + '15' }]}>
+                      {/* Type Icon */}
+                      <View style={[
+                        styles.activityIcon, 
+                        { backgroundColor: (isIncome ? theme.success : theme.error) + '15' }
+                      ]}>
                         <Ionicons 
-                          name={isIncome ? 'arrow-down' : 'arrow-up'} 
-                          size={16} 
+                          name={isIncome ? 'arrow-down-circle' : 'arrow-up-circle'} 
+                          size={22} 
                           color={isIncome ? theme.success : theme.error} 
                         />
                       </View>
+                      
+                      {/* Transaction Info */}
                       <View style={styles.activityInfo}>
-                        <Text style={[styles.activityDesc, { color: theme.text }]} numberOfLines={1}>
-                          {transaction.description || 'Transaction'}
-                        </Text>
-                        <View style={styles.activityMeta}>
-                          <Text style={[styles.activityDate, { color: theme.textTertiary }]}>
-                            {transaction.date ? new Date(transaction.date).toLocaleDateString('fr-FR') : ''}
+                        <View style={styles.activityTopRow}>
+                          <Text style={[styles.activityDesc, { color: theme.text }]} numberOfLines={1}>
+                            {transaction.description || 'Transaction'}
                           </Text>
-                          <View style={styles.walletRow}>
-                            <Ionicons name="wallet-outline" size={10} color={theme.textTertiary} />
-                            <Text style={[styles.walletName, { color: theme.textTertiary }]}>
-                              {walletName}
+                        </View>
+                        
+                        {/* Meta row: Date */}
+                        <View style={styles.activityMeta}>
+                          <View style={styles.metaLeft}>
+                            <Ionicons name="time-outline" size={10} color={theme.textTertiary} />
+                            <Text style={[styles.activityDate, { color: theme.textTertiary }]}>
+                              {transaction.date ? formatDateTime(transaction.date) : ''}
                             </Text>
                           </View>
                         </View>
+                        
+                        {/* Wallet + Labels row */}
+                        <View style={styles.walletLabelRow}>
+                          <View style={styles.walletRow}>
+                            <View style={[
+                              styles.walletDot, 
+                              { backgroundColor: isWalletActive ? walletColor : theme.textTertiary }
+                            ]} />
+                            <Text style={[
+                              styles.walletName, 
+                              { color: isWalletActive ? walletColor : theme.textTertiary }
+                            ]} numberOfLines={1}>
+                              {walletName}
+                            </Text>
+                            {!isWalletActive && (
+                              <Text style={[styles.inactiveTag, { color: theme.error }]}> - Inactif</Text>
+                            )}
+                          </View>
+                          
+                          {/* Labels */}
+                          {transaction.labels && transaction.labels.length > 0 && (
+                            <View style={styles.labelRow}>
+                              {transaction.labels.slice(0, 2).map((label, labelIndex) => (
+                                <View 
+                                  key={label.id} 
+                                  style={[
+                                    styles.labelBadge, 
+                                    { backgroundColor: label.color + '20' }
+                                  ]}
+                                >
+                                  <View style={[styles.labelDot, { backgroundColor: label.color }]} />
+                                  <Text style={[styles.labelText, { color: label.color }]}>
+                                    {label.name}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </View>
                       </View>
-                      <Text style={[styles.activityAmount, { color: isIncome ? theme.success : theme.error }]}>
-                        {isIncome ? '' : '-'}{Math.abs(Number(transaction.amount)).toLocaleString()} Ar
-                      </Text>
+                      
+                      {/* Amount */}
+                      <View style={styles.amountContainer}>
+                        <Text style={[
+                          styles.activityAmount, 
+                          { color: isIncome ? theme.success : theme.error }
+                        ]}>
+                          {isIncome ? '+' : '-'}{Math.abs(Number(transaction.amount)).toLocaleString()} Ar
+                        </Text>
+                      </View>
                     </View>
                   );
                 })}
               </View>
             ) : (
               <View style={styles.emptyActivity}>
-                <Ionicons name="receipt-outline" size={32} color={theme.textTertiary} />
+                <View style={[styles.emptyIconWrapper, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="receipt-outline" size={36} color={theme.primary} />
+                </View>
                 <Text style={[styles.emptyActivityText, { color: theme.textSecondary }]}>
                  Aucune activite recente
+                </Text>
+                <Text style={[styles.emptyActivitySubtext, { color: theme.textTertiary }]}>
+                  Ajoutez une transaction pour commencer
                 </Text>
               </View>
             )}
@@ -349,11 +436,10 @@ export default function DashboardScreen() {
 
         {/* Chart section - Animated */}
         <Animated.View style={[getAnimStyle(chartAnim)]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Analyse des depenses</Text>
+          </View>
           <View style={[styles.chartCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <View style={styles.chartHeader}>
-              <Text style={[styles.chartTitle, { color: theme.text }]}>Analyse des depenses</Text>
-              <Ionicons name="trending-up" size={24} color={theme.primary} />
-            </View>
             <View style={[styles.chartPlaceholder, { backgroundColor: theme.backgroundSecondary }]}>
               <Ionicons name="bar-chart-outline" size={40} color={theme.textTertiary} />
               <Text style={[styles.chartPlaceholderText, { color: theme.textTertiary }]}>
@@ -639,6 +725,65 @@ const styles = StyleSheet.create({
   },
   walletName: {
     fontSize: 11,
+  },
+  activityTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  metaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+  },
+  walletLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  labelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  labelDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  labelText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+    marginLeft: 8,
+  },
+  emptyIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  emptyActivitySubtext: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  inactiveTag: {
+    fontSize: 9,
+    fontWeight: '700',
   },
   warningBadge: {
     position: 'absolute',

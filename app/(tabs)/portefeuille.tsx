@@ -45,7 +45,6 @@ export default function PortefeuilleScreen() {
       <View style={styles.content}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Mes Portefeuilles</Text>
-          <Ionicons name="wallet-outline" size={22} color={theme.primary} />
         </View>
         
         <View style={{ flex: 1 }}>

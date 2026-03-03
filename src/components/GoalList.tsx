@@ -1,29 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { 
+  ActivityIndicator, 
+  FlatList, 
+  Modal, 
+  Pressable, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View, 
+  Animated, 
+  NativeSyntheticEvent, 
+  NativeScrollEvent 
+} from 'react-native';
 import { Colors } from '../../constants/colors';
-import { useTransactions } from '../hooks/useTransactions';
+import { useGoals } from '../hooks/useGoals';
 import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
-import { TransactionFilters, TransactionItem } from '../types/transaction';
-import EditTransactionModal from './EditTransactionModal';
+import { GoalFilters, GoalItem } from '../types/goal';
+import EditGoalModal from './EditGoalModal';
 import ConfirmModal from './ConfirmModal';
+import { GoalCard } from './GoalCard';
 
-// Nombre de transactions par page
-const PAGE_SIZE = 10;
+// Nombre d'objectifs par page
+const PAGE_SIZE = 5;
 
-// Mapping des types vers les icônes et couleurs
-const TRANSACTION_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
-  'IN': { icon: 'arrow-down-circle', color: '#22C55E' },
-  'OUT': { icon: 'arrow-up-circle', color: '#EF4444' },
-};
-
-export default function TransactionList() {
-  const [filters, setFilters] = useState<TransactionFilters>({});
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionItem | null>(null);
+export default function GoalList() {
+  const [filters, setFilters] = useState<GoalFilters>({});
+  const [selectedGoal, setSelectedGoal] = useState<GoalItem | null>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState<TransactionItem | null>(null);
+  const [goalToDelete, setGoalToDelete] = useState<GoalItem | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAtBottom, setIsAtBottom] = useState(false);
@@ -34,54 +41,55 @@ export default function TransactionList() {
   const lastScrollY = useRef(0);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const { wallets } = useWallets();
 
-  const { transactions, isLoading, deleteTransaction, totalTransactions, error, refetch } = useTransactions({
+  const { goals, isLoading, archiveGoal, totalGoals, error, refetch } = useGoals({
     ...filters,
     page: currentPage,
     pageSize: PAGE_SIZE,
   });
 
-  // Debug: Log transaction data when it changes
+  // Debug: Log goal data when it changes
   useEffect(() => {
-    console.log("TransactionList - transactions:", transactions);
-    console.log("TransactionList - totalTransactions:", totalTransactions);
-    console.log("TransactionList - isLoading:", isLoading);
-    console.log("TransactionList - error:", error);
-    console.log("TransactionList - currentPage:", currentPage);
-    console.log("TransactionList - filters:", filters);
-  }, [transactions, totalTransactions, isLoading, error, currentPage, filters]);
-
-  // Debug: Reset filters when component mounts
-  // Add a ref to track if we've initially loaded
-  const isInitialMount = React.useRef(true);
+    console.log("GoalList - goals:", goals);
+    console.log("GoalList - totalGoals:", totalGoals);
+    console.log("GoalList - isLoading:", isLoading);
+    console.log("GoalList - error:", error);
+    console.log("GoalList - currentPage:", currentPage);
+    console.log("GoalList - filters:", filters);
+  }, [goals, totalGoals, isLoading, error, currentPage, filters]);
 
   // Reset on first mount
+  const isInitialMount = React.useRef(true);
+
   React.useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      console.log("TransactionList - First mount, resetting filters and page");
+      console.log("GoalList - First mount, resetting filters and page");
       setFilters({});
       setCurrentPage(1);
     }
   }, []);
-  const { wallets } = useWallets();
 
   // Calculer le nombre total de pages basé sur le total réel du serveur
-  const totalPages = Math.ceil(totalTransactions / PAGE_SIZE);
+  const totalPages = Math.ceil(totalGoals / PAGE_SIZE);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.type, filters.walletId]);
+  }, [filters.walletId, filters.status, filters.name]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (filters.type) count++;
     if (filters.walletId) count++;
+    if (filters.status) count++;
+    if (filters.name) count++;
+    if (filters.minAmount) count++;
+    if (filters.maxAmount) count++;
     return count;
   }, [filters]);
 
-  const updateFilter = (newFilters: Partial<TransactionFilters>) => {
+  const updateFilter = (newFilters: Partial<GoalFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
@@ -89,19 +97,19 @@ export default function TransactionList() {
     setFilters({});
   };
 
-  const handleDeletePress = (item: TransactionItem) => {
-    setTransactionToDelete(item);
+  const handleDeletePress = (item: GoalItem) => {
+    setGoalToDelete(item);
     setDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = () => {
-    if (transactionToDelete) {
-      deleteTransaction(
-        { walletId: transactionToDelete.walletId, transactionId: transactionToDelete.id },
+    if (goalToDelete) {
+      archiveGoal(
+        { walletId: goalToDelete.walletId, goalId: goalToDelete.id },
         {
           onSuccess: () => {
             setDeleteModalVisible(false);
-            setTransactionToDelete(null);
+            setGoalToDelete(null);
           },
           onError: (err) => {
             console.error("Erreur suppression:", err);
@@ -112,15 +120,15 @@ export default function TransactionList() {
     }
   };
 
-  const handleEditPress = (item: TransactionItem) => {
-    setSelectedTransaction(item);
+  const handleEditPress = (item: GoalItem) => {
+    setSelectedGoal(item);
   };
 
   const handleFilterSelect = (filterType: string, value: string | undefined) => {
-    if (filterType === 'type') {
-      updateFilter({ type: value as 'IN' | 'OUT' | undefined });
-    } else if (filterType === 'walletId') {
+    if (filterType === 'walletId') {
       updateFilter({ walletId: value });
+    } else if (filterType === 'status') {
+      updateFilter({ status: value as 'in_progress' | 'completed' | 'expired' | undefined });
     }
   };
 
@@ -144,7 +152,6 @@ export default function TransactionList() {
     }
     
     // Afficher le bouton filtre seulement quand on est proche du haut de la page
-    // Le montrer si scrollY < 50, sinon le cacher
     const shouldShowFilter = currentScrollY < 50;
     
     if (shouldShowFilter !== isScrollingDown) {
@@ -178,7 +185,7 @@ export default function TransactionList() {
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <Ionicons name="alert-circle-outline" size={48} color={theme.error} />
         <Text style={[styles.errorText, { color: theme.error, marginTop: 16 }]}>
-          Erreur lors du chargement des transactions
+          Erreur lors du chargement des objectifs
         </Text>
         <Text style={[styles.errorDetail, { color: theme.textSecondary, marginTop: 8 }]}>
           {error.message || 'Vérifiez votre connexion'}
@@ -227,7 +234,7 @@ export default function TransactionList() {
 
       {/* LIST */}
       <FlatList
-        data={transactions}
+        data={goals}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
@@ -236,104 +243,24 @@ export default function TransactionList() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.primary + '15' }]}>
-              <Ionicons name="receipt-outline" size={40} color={theme.primary} />
+              <Ionicons name="trophy-outline" size={40} color={theme.primary} />
             </View>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>Aucune transaction</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>Aucun objectif</Text>
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              Ajoutez votre premiere transaction
+              Creez votre premier objectif
             </Text>
           </View>
         }
-        renderItem={({ item }) => {
-          // Get transaction type config
-          const typeStr = String(item.type || '').trim().toUpperCase();
-          const config = TRANSACTION_TYPE_CONFIG[typeStr] || TRANSACTION_TYPE_CONFIG['OUT'];
-          const isIncome = typeStr === 'IN';
-          const displayAmount = Math.abs(Number(item.amount)).toLocaleString();
-          
-          // Get wallet info
-          const wallet = wallets.find(w => w.id === item.walletId);
-          const walletName = wallet?.name || 'Portefeuille';
-          const walletColor = wallet?.color || theme.primary;
-          const isWalletActive = wallet?.isActive ?? true;
-          
-          // Style for deactivated wallet - same as WalletList
-          const walletIconColor = isWalletActive ? walletColor : theme.textTertiary;
-
-          return (
-            <TouchableOpacity 
-              style={[
-                styles.transactionCard, 
-                { backgroundColor: theme.surface, borderColor: theme.border },
-                !isWalletActive && { opacity: 0.6 }
-              ]}
-              onPress={() => handleEditPress(item)}
-              activeOpacity={0.7}
-            >
-              {/* Type Icon */}
-              <View style={[styles.iconContainer, { backgroundColor: config.color + '20' }]}>
-                <Ionicons 
-                  name={config.icon as any} 
-                  size={24} 
-                  color={config.color} 
-                />
-              </View>
-
-              <View style={styles.info}>
-                <Text style={[styles.description, { color: theme.text }]} numberOfLines={1}>
-                  {item.description || 'Sans description'}
-                </Text>
-                <View style={styles.metaRow}>
-                  <Text style={[styles.date, { color: theme.textSecondary }]}>
-                    {item.date ? format(new Date(item.date), 'dd MMM yyyy') : '---'}
-                  </Text>
-                  <View style={[styles.walletBadge, { backgroundColor: walletIconColor + '15' }]}>
-                    <Ionicons name="wallet-outline" size={10} color={walletIconColor} />
-                    <Text style={[styles.walletName, { color: walletIconColor }]}>{walletName}</Text>
-                    {!isWalletActive && (
-                      <Text style={[styles.inactiveTag, { color: theme.error }]}> - Inactif</Text>
-                    )}
-                  </View>
-                </View>
-                
-                {/* Label if exists - show only first label since only one is allowed */}
-                {item.labels && item.labels.length > 0 && (
-                  <View style={[styles.labelBadge, { backgroundColor: item.labels[0].color + '20' }]}>
-                    <Ionicons name={(item.labels[0].iconRef as any) || 'pricetag'} size={12} color={item.labels[0].color} />
-                    <Text style={[styles.labelText, { color: item.labels[0].color }]}>
-                      {item.labels[0].name}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.rightSection}>
-                <Text style={[styles.amount, { color: isIncome ? theme.success : theme.error }]}>
-                  {isIncome ? '+' : '-'}{displayAmount} Ar
-                </Text>
-                
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
-                    onPress={() => handleEditPress(item)}
-                  >
-                    <Ionicons name="pencil-outline" size={16} color={theme.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.error + '20' }]}
-                    onPress={() => handleDeletePress(item)}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={theme.error} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={({ item }) => (
+          <GoalCard 
+            goal={item} 
+            onPress={() => handleEditPress(item)} 
+          />
+        )}
       />
 
       {/* Pagination Controls with arrows - slide in from bottom when at bottom */}
-      {transactions.length > 0 && (
+      {goals.length > 0 && (
         <Animated.View 
           style={[
             styles.paginationContainer,
@@ -361,16 +288,16 @@ export default function TransactionList() {
           
           <View style={styles.paginationInfo}>
             <Text style={[styles.paginationText, { color: theme.text }]}>
-              {currentPage} / {totalPages}
+              {currentPage} / {totalPages || 1}
             </Text>
           </View>
           
           <TouchableOpacity
-            style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
-            onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
+            style={[styles.paginationButton, currentPage >= totalPages && styles.paginationButtonDisabled]}
+            onPress={() => setCurrentPage(prev => Math.min(totalPages || 1, prev + 1))}
+            disabled={currentPage >= totalPages}
           >
-            <Ionicons name="arrow-forward" size={22} color={currentPage === totalPages ? theme.textTertiary : theme.primary} />
+            <Ionicons name="arrow-forward" size={22} color={currentPage >= totalPages ? theme.textTertiary : theme.primary} />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -405,44 +332,56 @@ export default function TransactionList() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Type Filter */}
+              {/* Status Filter */}
               <View style={styles.filterSection}>
-                <Text style={[styles.filterSectionTitle, { color: theme.textSecondary }]}>Type de transaction</Text>
+                <Text style={[styles.filterSectionTitle, { color: theme.textSecondary }]}>Statut</Text>
                 <View style={styles.filterOptions}>
                   <TouchableOpacity
                     style={[
                       styles.filterOption,
                       { backgroundColor: theme.background },
-                      !filters.type && { backgroundColor: theme.primary }
+                      !filters.status && { backgroundColor: theme.primary }
                     ]}
-                    onPress={() => handleFilterSelect('type', undefined)}
+                    onPress={() => handleFilterSelect('status', undefined)}
                   >
-                    <Ionicons name="apps" size={18} color={!filters.type ? '#FFFFFF' : theme.textSecondary} />
-                    <Text style={[styles.filterOptionText, { color: !filters.type ? '#FFFFFF' : theme.text }]}>Tous</Text>
+                    <Ionicons name="apps" size={18} color={!filters.status ? '#FFFFFF' : theme.textSecondary} />
+                    <Text style={[styles.filterOptionText, { color: !filters.status ? '#FFFFFF' : theme.text }]}>Tous</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity
                     style={[
                       styles.filterOption,
                       { backgroundColor: theme.background },
-                      filters.type === 'IN' && { backgroundColor: theme.success }
+                      filters.status === 'in_progress' && { backgroundColor: theme.primary }
                     ]}
-                    onPress={() => handleFilterSelect('type', filters.type === 'IN' ? undefined : 'IN')}
+                    onPress={() => handleFilterSelect('status', filters.status === 'in_progress' ? undefined : 'in_progress')}
                   >
-                    <Ionicons name="arrow-down-circle" size={18} color={filters.type === 'IN' ? '#FFFFFF' : theme.success} />
-                    <Text style={[styles.filterOptionText, { color: filters.type === 'IN' ? '#FFFFFF' : theme.text }]}>Revenus</Text>
+                    <Ionicons name="time-outline" size={18} color={filters.status === 'in_progress' ? '#FFFFFF' : theme.primary} />
+                    <Text style={[styles.filterOptionText, { color: filters.status === 'in_progress' ? '#FFFFFF' : theme.text }]}>En cours</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity
                     style={[
                       styles.filterOption,
                       { backgroundColor: theme.background },
-                      filters.type === 'OUT' && { backgroundColor: theme.error }
+                      filters.status === 'completed' && { backgroundColor: theme.success }
                     ]}
-                    onPress={() => handleFilterSelect('type', filters.type === 'OUT' ? undefined : 'OUT')}
+                    onPress={() => handleFilterSelect('status', filters.status === 'completed' ? undefined : 'completed')}
                   >
-                    <Ionicons name="arrow-up-circle" size={18} color={filters.type === 'OUT' ? '#FFFFFF' : theme.error} />
-                    <Text style={[styles.filterOptionText, { color: filters.type === 'OUT' ? '#FFFFFF' : theme.text }]}>Dépenses</Text>
+                    <Ionicons name="checkmark-circle" size={18} color={filters.status === 'completed' ? '#FFFFFF' : theme.success} />
+                    <Text style={[styles.filterOptionText, { color: filters.status === 'completed' ? '#FFFFFF' : theme.text }]}>Terminé</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.filterOption,
+                      { backgroundColor: theme.background },
+                      filters.status === 'expired' && { backgroundColor: theme.error }
+                    ]}
+                    onPress={() => handleFilterSelect('status', filters.status === 'expired' ? undefined : 'expired')}
+                  >
+                    <Ionicons name="alert-circle" size={18} color={filters.status === 'expired' ? '#FFFFFF' : theme.error} />
+                    <Text style={[styles.filterOptionText, { color: filters.status === 'expired' ? '#FFFFFF' : theme.text }]}>Expiré</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -503,25 +442,25 @@ export default function TransactionList() {
         </Pressable>
       </Modal>
 
-      {selectedTransaction && (
-        <EditTransactionModal
-          visible={!!selectedTransaction}
-          transaction={selectedTransaction}
-          onClose={() => setSelectedTransaction(null)}
+      {selectedGoal && (
+        <EditGoalModal
+          visible={!!selectedGoal}
+          goal={selectedGoal}
+          onClose={() => setSelectedGoal(null)}
         />
       )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         visible={deleteModalVisible}
-        title="Supprimer la transaction"
-        message={`Êtes-vous sûr de vouloir supprimer cette transaction "${transactionToDelete?.description || 'Sans description'}" ? Cette action est irréversible.`}
+        title="Supprimer l'objectif"
+        message={`Êtes-vous sûr de vouloir supprimer "${goalToDelete?.name || 'Cet objectif'}" ? Cette action est irréversible.`}
         confirmText="Supprimer"
         cancelText="Annuler"
         onConfirm={handleConfirmDelete}
         onCancel={() => {
           setDeleteModalVisible(false);
-          setTransactionToDelete(null);
+          setGoalToDelete(null);
         }}
         isDestructive={true}
       />
@@ -587,93 +526,6 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 12,
     fontWeight: '800',
-  },
-  transactionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  info: { 
-    flex: 1, 
-    marginLeft: 14,
-  },
-  description: { 
-    fontSize: 15, 
-    fontWeight: '700',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 8,
-  },
-  date: { 
-    fontSize: 12, 
-  },
-  walletBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    gap: 4,
-  },
-  walletName: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  inactiveTag: {
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  labelBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    gap: 6,
-  },
-  labelDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  labelText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  rightSection: {
-    alignItems: 'flex-end',
-  },
-  amount: { 
-    fontSize: 16, 
-    fontWeight: '800',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -867,3 +719,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
+

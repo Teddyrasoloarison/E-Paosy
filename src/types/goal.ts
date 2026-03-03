@@ -33,6 +33,9 @@ export interface GoalFilters {
   endingDateBeginning?: string;
   endingDateEnding?: string;
   sort?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+  status?: 'in_progress' | 'completed' | 'expired';
 }
 
 export interface GoalResponse {

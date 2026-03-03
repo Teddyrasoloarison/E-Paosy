@@ -9,7 +9,7 @@ export interface TransactionItem {
   walletId: string;
   accountId: string;
   createdAt?: string | null;
-  labels: { id: string; name: string; color: string }[];
+  labels: { id: string; name: string; color: string; iconRef?: string | null }[];
 }
 
 // 🟢 Mis à jour pour correspondre à l'attente du Backend (objets pour les labels)

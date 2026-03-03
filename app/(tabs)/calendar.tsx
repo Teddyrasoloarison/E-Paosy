@@ -4,14 +4,17 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { format, getDaysInMonth, startOfMonth, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import React, { useState, useCallback } from 'react';
-import { BackHandler, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { BackHandler, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList, ActivityIndicator, ScrollView, Animated } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useThemeStore } from '../../src/store/useThemeStore';
 import { useAuthStore } from '../../src/store/useAuthStore';
 import { transactionService } from '../../src/services/transactionService';
 import { useWallets } from '../../src/hooks/useWallets';
 import { TransactionItem } from '../../src/types/transaction';
+
+// Nombre de transactions par page dans le calendrier
+const PAGE_SIZE = 10;
 
 // Mapping des types vers les icônes et couleurs
 const TRANSACTION_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
@@ -30,6 +33,12 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const paginationAnim = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -45,8 +54,11 @@ export default function CalendarScreen() {
     }, [router])
   );
 
-  // Charger les transactions pour la date sélectionnée
-  const loadTransactionsForDate = useCallback(async () => {
+  // Calculer le nombre total de pages
+  const totalPages = Math.ceil(totalTransactions / PAGE_SIZE);
+
+  // Charger les transactions pour la date sélectionnée avec pagination
+  const loadTransactionsForDate = useCallback(async (page: number = 1) => {
     if (!accountId) return;
     
     setIsLoading(true);
@@ -59,41 +71,42 @@ export default function CalendarScreen() {
       const result = await transactionService.getTransactions(accountId, {
         startingDate: startOfDay.toISOString(),
         endingDate: endOfDay.toISOString(),
-        pageSize: 100, // Limite haute pour récupérer toutes les transactions du jour
+        page: page,
+        pageSize: PAGE_SIZE,
       });
 
-      setTransactions(result.data || []);
+      // Stocker le total des transactions pour la pagination
+      setTotalTransactions(result.total || 0);
+      
+      // Si c'est la première page, remplacer les données
+      // Sinon, ajouter aux données existantes
+      if (page === 1) {
+        setTransactions(result.data || []);
+      } else {
+        setTransactions(prev => [...prev, ...(result.data || [])]);
+      }
+      
+      setCurrentPage(page);
     } catch (error) {
       console.error('Erreur lors du chargement des transactions:', error);
       setTransactions([]);
+      setTotalTransactions(0);
     } finally {
       setIsLoading(false);
     }
   }, [accountId, selectedDate]);
 
+  // Charger les transactions quand la date change
   React.useEffect(() => {
-    loadTransactionsForDate();
+    loadTransactionsForDate(1);
   }, [loadTransactionsForDate]);
 
-  // Calculer les statistiques du jour
-  const dailyStats = React.useMemo(() => {
-    let totalIncome = 0;
-    let totalExpense = 0;
-
-    transactions.forEach(t => {
-      if (t.type === 'IN') {
-        totalIncome += Number(t.amount);
-      } else {
-        totalExpense += Number(t.amount);
-      }
-    });
-
-    return {
-      income: totalIncome,
-      expense: totalExpense,
-      difference: totalIncome - totalExpense,
-    };
-  }, [transactions]);
+  // Gérer le changement de page
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      loadTransactionsForDate(newPage);
+    }
+  };
 
   // Fonctions de navigation du calendrier
   const goToPreviousMonth = () => {
@@ -172,8 +185,11 @@ export default function CalendarScreen() {
       subtitle={`Transactions du ${format(selectedDate, 'dd MMMM yyyy', { locale: fr })}`} 
       icon="calendar-outline"
     >
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        
+      <ScrollView 
+        style={[styles.container, { backgroundColor: theme.background }]}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* En-tête du calendrier */}
         <View style={[styles.calendarHeader, { backgroundColor: theme.surface }]}>
           <TouchableOpacity onPress={goToPreviousMonth} style={styles.navButton}>
@@ -231,51 +247,10 @@ export default function CalendarScreen() {
           })}
         </View>
 
-        {/* Statistiques du jour */}
-        <View style={[styles.statsContainer, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.statsTitle, { color: theme.text }]}>Résumé du jour</Text>
-          
-          <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: theme.success + '15' }]}>
-              <Ionicons name="arrow-down-circle" size={20} color={theme.success} />
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Revenus</Text>
-              <Text style={[styles.statValue, { color: theme.success }]}>
-                +{dailyStats.income.toLocaleString()} Ar
-              </Text>
-            </View>
-            
-            <View style={[styles.statCard, { backgroundColor: theme.error + '15' }]}>
-              <Ionicons name="arrow-up-circle" size={20} color={theme.error} />
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Dépenses</Text>
-              <Text style={[styles.statValue, { color: theme.error }]}>
-                -{dailyStats.expense.toLocaleString()} Ar
-              </Text>
-            </View>
-            
-            <View style={[
-              styles.statCard, 
-              { backgroundColor: dailyStats.difference >= 0 ? theme.success + '15' : theme.error + '15' }
-            ]}>
-              <Ionicons 
-                name={dailyStats.difference >= 0 ? 'trending-up' : 'trending-down'} 
-                size={20} 
-                color={dailyStats.difference >= 0 ? theme.success : theme.error} 
-              />
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Différence</Text>
-              <Text style={[
-                styles.statValue, 
-                { color: dailyStats.difference >= 0 ? theme.success : theme.error }
-              ]}>
-                {dailyStats.difference >= 0 ? '+' : ''}{dailyStats.difference.toLocaleString()} Ar
-              </Text>
-            </View>
-          </View>
-        </View>
 
-        {/* Liste des transactions du jour */}
         <View style={styles.transactionsSection}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Transactions ({transactions.length})
+            Transactions ({totalTransactions})
           </Text>
           
           {isLoading ? (
@@ -288,16 +263,44 @@ export default function CalendarScreen() {
               </Text>
             </View>
           ) : (
-            <FlatList
-              data={transactions}
-              keyExtractor={(item) => item.id}
-              renderItem={renderTransactionItem}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-            />
+            <>
+              <FlatList
+                data={transactions}
+                keyExtractor={(item) => item.id}
+                renderItem={renderTransactionItem}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                scrollEnabled={false}
+              />
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <View style={[styles.paginationContainer, { backgroundColor: theme.surface }]}>
+                  <TouchableOpacity
+                    style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+                    onPress={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <Ionicons name="arrow-back" size={20} color={currentPage === 1 ? theme.textTertiary : theme.primary} />
+                  </TouchableOpacity>
+                  
+                  <Text style={[styles.paginationText, { color: theme.text }]}>
+                    {currentPage} / {totalPages}
+                  </Text>
+                  
+                  <TouchableOpacity
+                    style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
+                    onPress={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <Ionicons name="arrow-forward" size={20} color={currentPage === totalPages ? theme.textTertiary : theme.primary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           )}
         </View>
-      </View>
+      </ScrollView>
     </DashboardShell>
   );
 }
@@ -305,6 +308,9 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -317,7 +323,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   navButton: {
-    padding: 8,
+    padding: 8, 
   },
   monthTitle: {
     fontSize: 18,
@@ -450,6 +456,27 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     marginTop: 12,
+  },
+  // Pagination Styles
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 20,
+  },
+  paginationButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 100,
+    backgroundColor: '#F0F0F0',
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

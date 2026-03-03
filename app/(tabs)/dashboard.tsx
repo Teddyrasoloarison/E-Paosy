@@ -104,8 +104,7 @@ export default function DashboardScreen() {
                   <Text style={styles.welcomeStatText}>{activeWalletsCount} portefeuille(s) actif(s)</Text>
                 </View>
                 <View style={styles.welcomeStatItem}>
-                  <Ionicons name="swap-horizontal-outline" size={14} color="rgba(255,255,255,0.7)" />
-                  <Text style={styles.welcomeStatText}>{recentTransactionsCount} transactions</Text>
+                  <Text style={styles.welcomeStatText}> </Text>
                 </View>
               </View>
             </View>

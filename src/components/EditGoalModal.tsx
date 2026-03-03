@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/colors';
 import { useGoals } from '../hooks/useGoals';
 import { useModernAlert } from '../hooks/useModernAlert';
@@ -38,6 +39,9 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
   const { wallets } = useWallets();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema) as any,
@@ -167,6 +171,59 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
               ))}
             </ScrollView>
             {errors.walletId && <Text style={[styles.error, { color: theme.error }]}>{errors.walletId.message}</Text>}
+
+            {/* Dates */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Dates</Text>
+            
+            {/* Starting Date */}
+            <Text style={[styles.customLabel, { color: theme.textTertiary }]}>Date de début</Text>
+            <TouchableOpacity 
+              style={[styles.inputContainer, { backgroundColor: theme.background }]}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
+              <Text style={[styles.input, { color: theme.text }]}>
+                {watch('startingDate') ? new Date(watch('startingDate')).toLocaleDateString('fr-FR') : 'Sélectionner une date'}
+              </Text>
+            </TouchableOpacity>
+            {showStartDatePicker && (
+              <DateTimePicker
+                value={new Date(watch('startingDate') || new Date())}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, date) => {
+                  setShowStartDatePicker(Platform.OS === 'ios');
+                  if (date) {
+                    setValue('startingDate', date.toISOString(), { shouldValidate: true });
+                  }
+                }}
+              />
+            )}
+
+            {/* Ending Date */}
+            <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>Date de fin</Text>
+            <TouchableOpacity 
+              style={[styles.inputContainer, { backgroundColor: theme.background }]}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
+              <Text style={[styles.input, { color: theme.text }]}>
+                {watch('endingDate') ? new Date(watch('endingDate')).toLocaleDateString('fr-FR') : 'Sélectionner une date'}
+              </Text>
+            </TouchableOpacity>
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={new Date(watch('endingDate') || new Date())}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, date) => {
+                  setShowEndDatePicker(Platform.OS === 'ios');
+                  if (date) {
+                    setValue('endingDate', date.toISOString(), { shouldValidate: true });
+                  }
+                }}
+              />
+            )}
 
             {/* Customization */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Personnalisation</Text>

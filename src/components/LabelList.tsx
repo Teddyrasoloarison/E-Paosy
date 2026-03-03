@@ -8,6 +8,9 @@ import { useThemeStore } from '../store/useThemeStore';
 import { LabelItem } from '../types/label';
 import EditLabelModal from './EditLabelModal';
 
+// Default icon when none is set
+const DEFAULT_LABEL_ICON = 'pricetag';
+
 export default function LabelList() {
   const { labels, isLoading, error, archiveLabel } = useLabels();
   const [editingLabel, setEditingLabel] = useState<LabelItem | null>(null);
@@ -71,13 +74,19 @@ export default function LabelList() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const labelIcon = item.iconRef || DEFAULT_LABEL_ICON;
+          const labelColor = item.color || theme.primary;
+          
+          return (
           <TouchableOpacity 
             style={[styles.labelCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => setEditingLabel(item)}
             activeOpacity={0.7}
           >
-            <View style={[styles.labelColorBar, { backgroundColor: item.color || theme.primary }]} />
+            <View style={[styles.labelIconContainer, { backgroundColor: labelColor + '20' }]}>
+              <Ionicons name={labelIcon as any} size={20} color={labelColor} />
+            </View>
             
             <View style={styles.labelContent}>
               <View style={styles.labelInfo}>
@@ -85,9 +94,9 @@ export default function LabelList() {
                   {item.name}
                 </Text>
                 <View style={styles.labelMeta}>
-                  <Ionicons name="pricetag-outline" size={12} color={theme.textTertiary} />
+                  <View style={[styles.colorDot, { backgroundColor: labelColor }]} />
                   <Text style={[styles.labelMetaText, { color: theme.textTertiary }]}>
-                    {item.id.slice(0, 8)}...
+                    {labelColor}
                   </Text>
                 </View>
               </View>
@@ -108,7 +117,7 @@ export default function LabelList() {
               </View>
             </View>
           </TouchableOpacity>
-        )}
+        )}}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.primary + '15' }]}>
@@ -162,6 +171,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     overflow: 'hidden',
   },
+  labelIconContainer: {
+    width: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   labelColorBar: {
     width: 6,
   },
@@ -183,6 +197,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  colorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   labelMetaText: {
     fontSize: 12,

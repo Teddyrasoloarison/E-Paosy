@@ -9,8 +9,32 @@ export const useGoals = (filters?: GoalFilters) => {
 
   const query = useQuery({
     queryKey: ['goals', accountId, filters],
-    queryFn: () => goalService.getGoals(accountId!, filters),
+    queryFn: async () => {
+      if (!accountId) {
+        return { values: [], pagination: { totalPage: 0, page: 1, hasNext: false, hasPrev: false } };
+      }
+      const result = await goalService.getGoals(accountId, filters);
+      
+      // Handle case where API returns array directly
+      if (Array.isArray(result)) {
+        return { 
+          values: result, 
+          pagination: { totalPage: 1, page: 1, hasNext: false, hasPrev: false } 
+        };
+      }
+      
+      if (!result || typeof result !== 'object') {
+        return { values: [], pagination: { totalPage: 0, page: 1, hasNext: false, hasPrev: false } };
+      }
+      
+      return {
+        values: result.values || [],
+        pagination: result.pagination || { totalPage: 0, page: 1, hasNext: false, hasPrev: false }
+      };
+    },
     enabled: !!accountId,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const createMutation = useMutation({
@@ -37,9 +61,15 @@ export const useGoals = (filters?: GoalFilters) => {
     },
   });
 
+  // Calculate total goals from pagination
+  const totalGoals = query.data?.pagination 
+    ? query.data.pagination.totalPage * (filters?.pageSize || 5)
+    : 0;
+
   return {
     ...query,
     goals: query.data?.values || [],
+    totalGoals: query.data?.pagination?.totalPage || 0,
     createGoal: createMutation.mutate,
     updateGoal: updateMutation.mutate,
     archiveGoal: archiveMutation.mutate,

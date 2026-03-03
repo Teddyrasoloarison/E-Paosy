@@ -8,6 +8,7 @@ export interface TransactionItem {
   description: string;
   walletId: string;
   accountId: string;
+  createdAt?: string | null;
   labels: { id: string; name: string; color: string }[];
 }
 
@@ -30,7 +31,7 @@ export interface TransactionFilters {
   label?: string[];
   minAmount?: number;
   maxAmount?: number;
-  sortBy?: 'date' | 'amount';
+  sortBy?: 'date' | 'amount' | 'createdAt';
   sort?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;

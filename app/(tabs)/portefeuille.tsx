@@ -117,7 +117,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: { elevation: 6 },
-      web: { boxShadow: '0px 4px 12px rgba(13, 148, 136, 0.3)' },
     }),
   },
 });

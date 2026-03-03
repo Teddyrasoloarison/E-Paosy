@@ -70,10 +70,17 @@ export default function WalletList() {
     setModalType(null);
   }, []);
 
-  // Sort wallets by creation date (newest first - based on id)
+  // Sort wallets by creation date (newest first)
   const sortedWallets = useMemo(() => {
     if (!data?.values) return [];
-    return [...data.values].sort((a, b) => b.id.localeCompare(a.id));
+    return [...data.values].sort((a, b) => {
+      // If createdAt exists, use it for sorting (newest first)
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      // Fallback: use id for sorting (newest first based on UUID)
+      return b.id.localeCompare(a.id);
+    });
   }, [data?.values]);
 
   if (isLoading) {

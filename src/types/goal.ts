@@ -9,6 +9,7 @@ export interface GoalItem {
   iconRef: string;
   walletId: string;
   accountId: string;
+  createdAt?: string;
 }
 
 export interface GoalPayload {

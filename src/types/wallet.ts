@@ -20,6 +20,7 @@ export interface Wallet {
   walletAutomaticIncome?: WalletAutomaticIncome;
   color?: string;
   iconRef?: string;
+  createdAt?: string;
 }
 
 export interface CreateWalletDto {

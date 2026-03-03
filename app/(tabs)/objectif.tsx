@@ -34,10 +34,17 @@ export default function ObjectifScreen() {
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
-  // Sort goals by creation date (newest first - based on id)
+  // Sort goals by creation date (newest first)
   const sortedGoals = useMemo(() => {
     if (!goals) return [];
-    return [...goals].sort((a, b) => b.id.localeCompare(a.id));
+    return [...goals].sort((a, b) => {
+      // If createdAt exists, use it for sorting (newest first)
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      // Fallback: use id for sorting (newest first based on UUID)
+      return b.id.localeCompare(a.id);
+    });
   }, [goals]);
 
   return (
@@ -142,7 +149,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: { elevation: 6 },
-      web: { boxShadow: '0px 4px 12px rgba(13, 148, 136, 0.3)' },
     }),
   },
 });

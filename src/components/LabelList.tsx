@@ -20,10 +20,10 @@ export default function LabelList() {
     return [...labels].sort((a, b) => {
       // If createdAt exists, use it for sorting (newest first)
       if (a.createdAt && b.createdAt) {
-        return b.createdAt.localeCompare(a.createdAt);
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
-      // Fallback: keep original order from API
-      return 0;
+      // Fallback: use id for sorting (newest first based on UUID)
+      return b.id.localeCompare(a.id);
     });
   }, [labels]);
 

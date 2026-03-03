@@ -3,6 +3,7 @@ import React, { useRef, useState } from 'react';
 import {
     Animated,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -88,11 +89,11 @@ export function ModernAlertProvider() {
   const getIconColor = () => {
     switch (options.type) {
       case 'success':
-        return '#10B981';
+        return theme.success;
       case 'error':
-        return '#EF4444';
+        return theme.error;
       case 'warning':
-        return '#F59E0B';
+        return theme.warning;
       case 'confirm':
         return theme.primary;
       default:
@@ -117,7 +118,7 @@ export function ModernAlertProvider() {
 
   return (
     <Modal transparent visible={visible} animationType="none">
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
+      <View style={[styles.overlay, { backgroundColor: theme.overlay }]}>
         <Animated.View
           style={[
             styles.alertContainer,
@@ -129,7 +130,7 @@ export function ModernAlertProvider() {
             },
           ]}
         >
-          {/* Icon */}
+          {/* Icon - Consistent with dashboard modal style */}
           <View
             style={[
               styles.iconContainer,
@@ -155,7 +156,7 @@ export function ModernAlertProvider() {
             </Text>
           )}
 
-          {/* Buttons */}
+          {/* Buttons - Consistent with modal form style */}
           <View
             style={[
               styles.buttonsContainer,
@@ -175,7 +176,7 @@ export function ModernAlertProvider() {
                       backgroundColor: isCancel
                         ? theme.backgroundSecondary
                         : isDestructive
-                        ? '#EF4444'
+                        ? theme.error
                         : theme.primary,
                       borderColor: theme.border,
                     },
@@ -222,11 +223,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     maxWidth: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+      android: { elevation: 20 },
+    }),
   },
   iconContainer: {
     width: 80,

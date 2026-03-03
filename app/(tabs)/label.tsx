@@ -69,9 +69,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: { elevation: 6 },
-      web: { boxShadow: '0px 4px 12px rgba(13, 148, 136, 0.3)' },
     }),
   },
 });

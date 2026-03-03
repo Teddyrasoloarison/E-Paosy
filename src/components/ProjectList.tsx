@@ -68,10 +68,17 @@ export default function ProjectList() {
     setSelectedProjectId(null);
   }, []);
 
-  // Sort projects by creation date (newest first - based on id)
+  // Sort projects by creation date (newest first)
   const sortedProjects = useMemo(() => {
     if (!data?.values) return [];
-    return [...data.values].sort((a, b) => b.id.localeCompare(a.id));
+    return [...data.values].sort((a, b) => {
+      // If createdAt exists, use it for sorting (newest first)
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (dateB !== dateA) return dateB - dateA;
+      // Fallback: use id for sorting (newest first based on UUID)
+      return b.id.localeCompare(a.id);
+    });
   }, [data?.values]);
 
   if (isLoading) {

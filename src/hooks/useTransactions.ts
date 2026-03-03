@@ -7,11 +7,50 @@ export const useTransactions = (filters?: TransactionFilters) => {
   const accountId = useAuthStore((state) => state.accountId);
   const queryClient = useQueryClient();
 
-  // 1. Récupération des transactions
+  // Debug: Log accountId when query is made
+  console.log("useTransactions - accountId:", accountId, "filters:", filters);
+
+  // 1. Récupération des transactions avec pagination
   const query = useQuery({
-    queryKey: ["transactions", accountId, filters],
-    queryFn: () => transactionService.getTransactions(accountId!, filters),
+    queryKey: ["transactions", accountId, { type: filters?.type, walletId: filters?.walletId, page: filters?.page, pageSize: filters?.pageSize }],
+    queryFn: async () => {
+      if (!accountId) {
+        console.warn("useTransactions called without accountId!");
+        return { data: [], total: 0 };
+      }
+      
+      const result = await transactionService.getTransactions(accountId, filters);
+      
+      // Handle case where API returns array directly instead of { data, total }
+      // This can happen if the backend returns an error or unexpected response
+      if (Array.isArray(result)) {
+        console.warn("API returned array instead of { data, total }");
+        return { data: result, total: result.length };
+      }
+      
+      // Ensure result has the expected format
+      if (!result || typeof result !== 'object') {
+        console.warn("API returned unexpected format:", result);
+        return { data: [], total: 0 };
+      }
+      
+      return {
+        data: result.data || [],
+        total: result.total || 0
+      };
+    },
     enabled: !!accountId,
+    retry: 1,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
+  });
+
+  // Debug: Log the query result
+  console.log("useTransactions query result:", { 
+    dataLength: query.data?.data?.length, 
+    total: query.data?.total,
+    isLoading: query.isLoading,
+    error: query.error 
   });
 
   // Fonction utilitaire pour rafraîchir toutes les données liées aux finances
@@ -99,7 +138,8 @@ export const useTransactions = (filters?: TransactionFilters) => {
 
   return {
     ...query,
-    transactions: query.data ?? [],
+    transactions: query.data?.data ?? [],
+    totalTransactions: query.data?.total ?? 0,
     createTransaction: createMutation.mutate,
     updateTransaction: updateMutation.mutate,
     deleteTransaction: deleteMutation.mutate,

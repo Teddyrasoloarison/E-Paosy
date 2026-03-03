@@ -4,10 +4,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import ConfirmModal from './ConfirmModal';
+import EditProjectModal from './EditProjectModal';
 import { useProjects } from '../hooks/useProjects';
 import { useThemeStore } from '../store/useThemeStore';
 import { Project } from '../types/project';
-import EditProjectModal from './EditProjectModal';
 
 // Mapping des icônes par défaut pour les projets
 const PROJECT_DEFAULT_ICONS: Record<string, string> = {
@@ -37,15 +37,15 @@ export default function ProjectList() {
     return data.values.find(p => p.id === selectedProjectId) || null;
   }, [selectedProjectId, data?.values]);
 
-  // Clic sur le projet -> Ouvre EditProjectModal
+  // Clic sur le projet -> Navigate to detail screen
   const handleProjectPress = useCallback((project: Project) => {
-    setSelectedProjectId(project.id);
-  }, []);
-
-  // Double clic -> Navigate to detail screen
-  const handleProjectLongPress = useCallback((project: Project) => {
     router.push(`/projet/${project.id}` as any);
   }, [router]);
+
+  // Long press -> Ouvre EditProjectModal
+  const handleProjectLongPress = useCallback((project: Project) => {
+    setSelectedProjectId(project.id);
+  }, []);
 
   const handleArchiveProject = useCallback((project: Project) => {
     setProjectToArchive(project);
@@ -124,53 +124,38 @@ export default function ProjectList() {
               delayLongPress={500}
               activeOpacity={0.7}
             >
-              {/* Icône avec couleur du projet */}
-              <View style={[styles.iconContainer, { backgroundColor: projectColor + '20' }]}>
-                <Ionicons 
-                  name={projectIcon as any} 
-                  size={24} 
-                  color={item.isArchived ? theme.textTertiary : projectColor} 
-                />
-              </View>
+              {/* Ligne du haut : Icône - Nom - 3 Boutons */}
+              <View style={styles.topRow}>
+                {/* Icône en haut à gauche */}
+                <View style={[styles.iconContainer, { backgroundColor: projectColor + '20' }]}>
+                  <Ionicons 
+                    name={projectIcon as any} 
+                    size={24} 
+                    color={item.isArchived ? theme.textTertiary : projectColor} 
+                  />
+                </View>
 
-              <View style={styles.info}>
-                <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-                  {item.name || 'Sans nom'}
-                </Text>
-                {item.description ? (
-                  <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {item.description}
+                {/* Nom au milieu */}
+                <View style={styles.nameContainer}>
+                  <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+                    {item.name || 'Sans nom'}
                   </Text>
-                ) : null}
-                
-                {/* Affichage du budget initial */}
-                {item.initialBudget !== undefined && item.initialBudget > 0 && (
-                   <View style={[styles.budgetBadge, { backgroundColor: projectColor + '15' }]}>
-                     <Ionicons name="wallet-outline" size={14} color={projectColor} />
-                     <Text style={[styles.budgetBadgeText, { color: projectColor }]}>
-                       Budget: {item.initialBudget.toLocaleString()} Ar
-                     </Text>
-                   </View>
-                )}
-              </View>
+                </View>
 
-              <View style={styles.statusContainer}>
-                <View style={styles.actionButtons}>
-                  {/* Bouton pour voir les détails */}
+                {/* 3 boutons côte à côte en haut à droite */}
+                <View style={styles.actionButtonsRow}>
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: projectColor + '20' }]}
-                    onPress={() => handleProjectLongPress(item)}
+                    onPress={() => handleProjectPress(item)}
                   >
                     <Ionicons name="eye" size={16} color={projectColor} />
                   </TouchableOpacity>
-                  {/* Bouton pour modifier */}
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
-                    onPress={() => handleProjectPress(item)}
+                    onPress={() => handleProjectLongPress(item)}
                   >
                     <Ionicons name="pencil" size={16} color={theme.primary} />
                   </TouchableOpacity>
-                  {/* Bouton pour archiver */}
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.warning + '20' }]}
                     onPress={() => handleArchiveProject(item)}
@@ -178,8 +163,29 @@ export default function ProjectList() {
                     <Ionicons name="archive" size={16} color={theme.warning} />
                   </TouchableOpacity>
                 </View>
-                {item.isArchived && (
-                  <Text style={[styles.archivedTag, { color: theme.warning }]}>Archivé</Text>
+              </View>
+
+              {/* Ligne du bas : Description - Budget */}
+              <View style={styles.bottomRow}>
+                {/* Description en bas à gauche */}
+                <View style={styles.descriptionContainer}>
+                  {item.description ? (
+                    <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={1}>
+                      {item.description}
+                    </Text>
+                  ) : item.isArchived ? (
+                    <Text style={[styles.archivedTag, { color: theme.warning }]}>Archivé</Text>
+                  ) : null}
+                </View>
+
+                {/* Budget en bas à droite */}
+                {item.initialBudget !== undefined && item.initialBudget > 0 && (
+                  <View style={[styles.budgetBadge, { backgroundColor: projectColor + '15' }]}>
+                    <Ionicons name="wallet-outline" size={14} color={projectColor} />
+                    <Text style={[styles.budgetBadgeText, { color: projectColor }]}>
+                      {item.initialBudget.toLocaleString()} Ar
+                    </Text>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
@@ -245,45 +251,87 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   projectCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     padding: 16,
     borderRadius: 16,
-    marginBottom: 12,
-    marginHorizontal: 1,
+    marginBottom: 14,
+    marginHorizontal: 2,
     borderWidth: 1,
+  },
+  // Ligne du haut : Icône - Nom - Boutons
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  info: { 
-    flex: 1, 
-    marginLeft: 14,
+  nameContainer: {
+    flex: 1,
+    marginHorizontal: 12,
   },
   name: { 
     fontSize: 16, 
     fontWeight: '700',
   },
+  // Ligne des boutons côte à côte
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Ligne du bas : Description - Budget
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  descriptionContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
   description: { 
     fontSize: 13, 
-    marginTop: 2,
-  },
-  statusContainer: { 
-    alignItems: 'flex-end',
   },
   archivedTag: { 
-    fontSize: 11, 
+    fontSize: 12, 
     fontWeight: '700',
-    marginTop: 4,
+  },
+  budgetBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    alignSelf: 'flex-start'
+  },
+  budgetBadgeText: {
+    fontSize: 12,
+    marginLeft: 5,
+    fontWeight: '600'
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 10,
   },
   emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 60,
-    paddingHorizontal: 40,
+    paddingVertical: 60,
   },
   emptyIcon: {
     width: 80,
@@ -295,37 +343,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
     textAlign: 'center',
-    lineHeight: 20,
-  },
-  budgetBadge: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start'
-  },
-  budgetBadgeText: {
-    fontSize: 11,
-    marginLeft: 4,
-    fontWeight: '600'
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

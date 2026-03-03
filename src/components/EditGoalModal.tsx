@@ -18,7 +18,20 @@ interface Props {
 }
 
 const PRESET_COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
-const PRESET_ICONS = ['cart', 'airplane', 'car', 'home', 'gift', 'school', 'phone-portrait', 'fitness'];
+const PRESET_ICONS = [
+  'home',
+  'school',
+  'car-sport',
+  'beer',
+  'airplane',
+  'gift',
+  'hammer',
+  'fitness',
+  'cart',
+  'paw',
+  'phone-portrait',
+  'pizza',
+];
 
 export default function EditGoalModal({ visible, onClose, goal }: Props) {
   const { updateGoal, isUpdating } = useGoals();

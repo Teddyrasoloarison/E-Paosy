@@ -29,12 +29,22 @@ export const useGoals = (filters?: GoalFilters) => {
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: ({ walletId, goalId }: { walletId: string; goalId: string }) =>
+      goalService.archiveGoal(accountId!, walletId, goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals', accountId] });
+    },
+  });
+
   return {
     ...query,
     goals: query.data?.values || [],
     createGoal: createMutation.mutate,
     updateGoal: updateMutation.mutate,
+    archiveGoal: archiveMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
+    isArchiving: archiveMutation.isPending,
   };
 };

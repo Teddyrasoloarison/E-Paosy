@@ -31,10 +31,10 @@ export default function WalletList() {
     return data.values.find(w => w.id === selectedWalletId) || null;
   }, [selectedWalletId, data?.values]);
 
-  // Clic sur le wallet -> Ouvre EditWalletModal
+  // Clic sur le wallet -> Ouvre EditAutomaticIncomeModal
   const handleWalletPress = useCallback((wallet: Wallet) => {
     setSelectedWalletId(wallet.id);
-    setModalType('edit');
+    setModalType('income');
   }, []);
 
   // Bouton pour aller vers AutomaticIncome
@@ -162,6 +162,13 @@ export default function WalletList() {
 
               <View style={styles.balanceContainer}>
                 <View style={styles.actionButtons}>
+                  {/* Bouton pour modifier le portefeuille */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
+                    onPress={() => handleEditWallet(item)}
+                  >
+                    <Ionicons name="pencil-outline" size={16} color={theme.primary} />
+                  </TouchableOpacity>
                   {/* Bouton pour revenu automatique */}
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.success + '20' }]}

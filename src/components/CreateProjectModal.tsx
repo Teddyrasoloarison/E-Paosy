@@ -17,16 +17,18 @@ interface Props {
 const PRESET_COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F', '#2563EB', '#059669'];
 
 const PROJECT_ICONS = [
-  { key: 'folder', icon: 'folder' },
-  { key: 'construction', icon: 'construct' },
+  { key: 'school', icon: 'school' },
   { key: 'home', icon: 'home' },
-  { key: 'car', icon: 'car' },
+  { key: 'car-sport', icon: 'car-sport' },
+  { key: 'beer', icon: 'beer' },
   { key: 'airplane', icon: 'airplane' },
   { key: 'gift', icon: 'gift' },
-  { key: 'school', icon: 'school' },
-  { key: 'heart', icon: 'heart' },
+  { key: 'hammer', icon: 'hammer' },
+  { key: 'fitness', icon: 'fitness' },
   { key: 'cart', icon: 'cart' },
-  { key: 'briefcase', icon: 'briefcase' },
+  { key: 'paw', icon: 'paw' },
+  { key: 'phone-portrait', icon: 'phone-portrait' },
+  { key: 'pizza', icon: 'pizza' },
 ];
 
 export default function CreateProjectModal({ visible, onClose }: Props) {
@@ -170,9 +172,9 @@ export default function CreateProjectModal({ visible, onClose }: Props) {
                   <Ionicons name="wallet-outline" size={20} color={selectedColor || theme.primary} />
                   <TextInput 
                     style={[styles.input, { color: theme.text }]} 
-                    placeholder="0"
+                    placeholder="Ex: 50000"
                     placeholderTextColor={theme.textTertiary}
-                    value={value === undefined ? '' : value.toString()}
+                    value={(value === undefined || value === 0) ? '' : value.toString()}
                     onChangeText={(text) => {
                       if (text === '') {
                         onChange(undefined);

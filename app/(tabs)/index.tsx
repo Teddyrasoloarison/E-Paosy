@@ -107,9 +107,9 @@ export default function WelcomeScreen() {
         <View style={[styles.featureCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.featureRow}>
             <View style={[styles.featureIcon, { backgroundColor: theme.primary + '15' }]}>
-              <Ionicons name="shield-checkmark-outline" size={20} color={theme.primary} />
+              <Ionicons name="key-outline" size={20} color={theme.primary} />
             </View>
-            <Text style={[styles.featureText, { color: theme.text }]}>Connexion sécurisée</Text>
+            <Text style={[styles.featureText, { color: theme.text }]}>Utilisation sécurisée</Text>
           </View>
           <View style={styles.featureRow}>
             <View style={[styles.featureIcon, { backgroundColor: theme.primary + '15' }]}>
@@ -157,13 +157,7 @@ export default function WelcomeScreen() {
 
         {/* Footer - Modern & Professional */}
         <Animated.View 
-          style={[
-            styles.footerContainer, 
-            { 
-              opacity: footerFadeAnim,
-              backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(248, 250, 252, 0.8)',
-            }
-          ]}
+          style={styles.footerContainer}
         >
           {/* Shield Icon Container */}
           <View style={[styles.footerIconContainer, { backgroundColor: theme.primary + '15' }]}>

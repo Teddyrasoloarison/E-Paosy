@@ -32,6 +32,14 @@ export interface TransactionFilters {
   maxAmount?: number;
   sortBy?: 'date' | 'amount';
   sort?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+// Response type for paginated transactions
+export interface PaginatedTransactions {
+  data: TransactionItem[];
+  total: number;
 }
 
 // Ce que React Hook Form manipule localement

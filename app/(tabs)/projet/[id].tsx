@@ -2,7 +2,7 @@ import DashboardShell from '@/components/dashboard-shell';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { ActivityIndicator, BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, Dimensions } from 'react-native';
 import { cacheDirectory, writeAsStringAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Colors } from '../../../constants/colors';
@@ -15,6 +15,7 @@ import { useAuthStore } from '../../../src/store/useAuthStore';
 import { useModernAlert } from '../../../src/hooks/useModernAlert';
 
 type TabType = 'transactions' | 'statistics';
+const { width } = Dimensions.get('window');
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -134,7 +135,7 @@ export default function ProjectDetailScreen() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Projet" subtitle="Chargement..." icon="flag-outline">
+      <DashboardShell title="Projet" subtitle="Chargement..." icon="briefcase-outline">
         <View style={[styles.center, { backgroundColor: theme.background }]}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -144,7 +145,7 @@ export default function ProjectDetailScreen() {
 
   if (!project) {
     return (
-      <DashboardShell title="Projet" subtitle="Non trouvé" icon="flag-outline">
+      <DashboardShell title="Projet" subtitle="Non trouvé" icon="briefcase-outline">
         <View style={[styles.center, { backgroundColor: theme.background }]}>
           <Text style={{ color: theme.error }}>Projet non trouvé</Text>
         </View>
@@ -157,28 +158,26 @@ export default function ProjectDetailScreen() {
   const budgetRemaining = statistics?.remainingBudget || 0;
   const budgetProgress = project.initialBudget > 0 ? (budgetUsed / project.initialBudget) * 100 : 0;
   const isOverBudget = budgetRemaining < 0;
+  const statusColor = isOverBudget ? theme.error : projectColor;
 
   return (
     <DashboardShell 
       title={project.name} 
       subtitle={project.description || 'Détails du projet'} 
-      icon="flag-outline"
+      icon={(project as any).icon || (project as any).ionicons || 'briefcase-outline'}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Budget Summary Card */}
-        <View style={[styles.budgetCard, { backgroundColor: projectColor + '15', borderColor: projectColor + '30' }]}>
+        <View style={[styles.budgetCard, { backgroundColor: theme.surface, shadowColor: theme.text }]}>
           <View style={styles.budgetHeader}>
-            <View style={styles.budgetItem}>
-              <Text style={[styles.budgetLabel, { color: theme.textSecondary }]}>Budget Initial</Text>
-              <Text style={[styles.budgetValue, { color: theme.text }]}>
-                {project.initialBudget.toLocaleString()} Ar
+            <View>
+              <Text style={[styles.budgetLabel, { color: theme.textSecondary }]}>Budget Restant</Text>
+              <Text style={[styles.mainValue, { color: statusColor }]}>
+                {budgetRemaining.toLocaleString()} <Text style={styles.currency}>Ar</Text>
               </Text>
             </View>
-            <View style={styles.budgetItem}>
-              <Text style={[styles.budgetLabel, { color: theme.textSecondary }]}>Restant</Text>
-              <Text style={[styles.budgetValue, { color: isOverBudget ? theme.error : theme.success }]}>
-                {budgetRemaining.toLocaleString()} Ar
-              </Text>
+            <View style={[styles.percentBadge, { backgroundColor: statusColor + '15' }]}>
+               <Text style={[styles.percentText, { color: statusColor }]}>{budgetProgress.toFixed(0)}%</Text>
             </View>
           </View>
           
@@ -188,34 +187,38 @@ export default function ProjectDetailScreen() {
               style={[
                 styles.progressBarFill, 
                 { 
-                  backgroundColor: isOverBudget ? theme.error : projectColor,
+                  backgroundColor: statusColor,
                   width: `${Math.min(budgetProgress, 100)}%` 
                 }
               ]} 
             />
           </View>
-          <Text style={[styles.progressText, { color: theme.textSecondary }]}>
-            {budgetProgress.toFixed(1)}% utilisé
-          </Text>
+
+          <View style={styles.budgetFooter}>
+             <View style={styles.footerItem}>
+                <Text style={[styles.footerLabel, { color: theme.textSecondary }]}>Initial</Text>
+                <Text style={[styles.footerValue, { color: theme.text }]}>{project.initialBudget.toLocaleString()} Ar</Text>
+             </View>
+             <View style={[styles.verticalDivider, { backgroundColor: theme.border }]} />
+             <View style={styles.footerItem}>
+                <Text style={[styles.footerLabel, { color: theme.textSecondary }]}>Dépensé</Text>
+                <Text style={[styles.footerValue, { color: theme.text }]}>{budgetUsed.toLocaleString()} Ar</Text>
+             </View>
+          </View>
         </View>
 
         {/* Tab Buttons */}
-        <View style={[styles.tabContainer, { backgroundColor: theme.surface }]}>
+        <View style={[styles.tabContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <TouchableOpacity 
             style={[
               styles.tab, 
-              activeTab === 'transactions' && { backgroundColor: projectColor + '20' }
+              activeTab === 'transactions' && { borderBottomColor: projectColor }
             ]}
             onPress={() => setActiveTab('transactions')}
           >
-            <Ionicons 
-              name="receipt" 
-              size={18} 
-              color={activeTab === 'transactions' ? projectColor : theme.textSecondary} 
-            />
             <Text style={[
               styles.tabText, 
-              { color: activeTab === 'transactions' ? projectColor : theme.textSecondary }
+              activeTab === 'transactions' ? { color: projectColor, fontWeight: '700' } : { color: theme.textSecondary }
             ]}>
               Transactions
             </Text>
@@ -223,18 +226,13 @@ export default function ProjectDetailScreen() {
           <TouchableOpacity 
             style={[
               styles.tab, 
-              activeTab === 'statistics' && { backgroundColor: projectColor + '20' }
+              activeTab === 'statistics' && { borderBottomColor: projectColor }
             ]}
             onPress={() => setActiveTab('statistics')}
           >
-            <Ionicons 
-              name="stats-chart" 
-              size={18} 
-              color={activeTab === 'statistics' ? projectColor : theme.textSecondary} 
-            />
             <Text style={[
               styles.tabText, 
-              { color: activeTab === 'statistics' ? projectColor : theme.textSecondary }
+              activeTab === 'statistics' ? { color: projectColor, fontWeight: '700' } : { color: theme.textSecondary }
             ]}>
               Statistiques
             </Text>
@@ -246,54 +244,56 @@ export default function ProjectDetailScreen() {
           {activeTab === 'transactions' ? (
             <ProjectTransactionList project={project} />
           ) : (
-            <ScrollView style={styles.statsContainer}>
+            <ScrollView style={styles.statsContainer} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
               {/* Statistics Summary */}
               {isStatsLoading ? (
                 <ActivityIndicator size="large" color={theme.primary} />
               ) : (
                 <>
-                  <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                    <View style={[styles.statIcon, { backgroundColor: projectColor + '20' }]}>
-                      <Ionicons name="calculator" size={24} color={projectColor} />
+<View style={styles.statsGrid}>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border, width: '100%' }]}>
+                      <View style={[styles.statIcon, { backgroundColor: projectColor + '15' }]}>
+                        <Ionicons name="calculator" size={22} color={projectColor} />
+                      </View>
+                      <View style={styles.statContent}>
+                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Estimé</Text>
+                        <Text style={[styles.statValue, { color: theme.text }]}>
+                          {statistics?.totalEstimatedCost?.toLocaleString() || 0} <Text style={{fontSize: 12, fontWeight: '400'}}>Ar</Text>
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.statContent}>
-                      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Coût Total Estimé</Text>
-                      <Text style={[styles.statValue, { color: projectColor }]}>
-                        {statistics?.totalEstimatedCost?.toLocaleString() || 0} Ar
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                    <View style={[styles.statIcon, { backgroundColor: theme.success + '20' }]}>
-                      <Ionicons name="cash" size={24} color={theme.success} />
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border, width: '100%' }]}>
+                      <View style={[styles.statIcon, { backgroundColor: theme.success + '15' }]}>
+                        <Ionicons name="cash" size={22} color={theme.success} />
+                      </View>
+                      <View style={styles.statContent}>
+                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Réel</Text>
+                        <Text style={[styles.statValue, { color: theme.success }]}>
+                          {statistics?.totalRealCost?.toLocaleString() || 0} <Text style={{fontSize: 12, fontWeight: '400'}}>Ar</Text>
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.statContent}>
-                      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Coût Total Réel</Text>
-                      <Text style={[styles.statValue, { color: theme.success }]}>
-                        {statistics?.totalRealCost?.toLocaleString() || 0} Ar
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                    <View style={[styles.statIcon, { backgroundColor: theme.primary + '20' }]}>
-                      <Ionicons name="receipt" size={24} color={theme.primary} />
-                    </View>
-                    <View style={styles.statContent}>
-                      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Nombre de Transactions</Text>
-                      <Text style={[styles.statValue, { color: theme.text }]}>
-                        {statistics?.transactionCount || 0}
-                      </Text>
+                    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border, width: '100%' }]}>
+                      <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
+                        <Ionicons name="receipt-outline" size={22} color={theme.primary} />
+                      </View>
+                      <View style={styles.statContent}>
+                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Transactions totales</Text>
+                        <Text style={[styles.statValue, { color: theme.text }]}>
+                          {statistics?.transactionCount || 0}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
                   {/* PDF Download Section */}
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Exporter en PDF</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Documents</Text>
                   
                   <View style={styles.pdfButtons}>
                     <TouchableOpacity 
-                      style={[styles.pdfButton, { backgroundColor: projectColor + '15', borderColor: projectColor + '30' }]}
+                      style={[styles.pdfButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
                       onPress={() => handleDownloadPDF('statistics')}
                       disabled={!!downloadingType}
                     >
@@ -301,14 +301,20 @@ export default function ProjectDetailScreen() {
                         <ActivityIndicator size="small" color={projectColor} />
                       ) : (
                         <>
-                          <Ionicons name="stats-chart" size={20} color={projectColor} />
-                          <Text style={[styles.pdfButtonText, { color: projectColor }]}>Statistiques</Text>
+                          <View style={[styles.pdfIcon, { backgroundColor: projectColor + '15' }]}>
+                            <Ionicons name="stats-chart" size={20} color={projectColor} />
+                          </View>
+                          <View style={{flex: 1}}>
+                            <Text style={[styles.pdfButtonText, { color: theme.text }]}>Rapport Statistique</Text>
+                            <Text style={{ fontSize: 11, color: theme.textSecondary }}>Format PDF</Text>
+                          </View>
+                          <Ionicons name="download-outline" size={20} color={theme.textTertiary} />
                         </>
                       )}
                     </TouchableOpacity>
 
                     <TouchableOpacity 
-                      style={[styles.pdfButton, { backgroundColor: theme.success + '15', borderColor: theme.success + '30' }]}
+                      style={[styles.pdfButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
                       onPress={() => handleDownloadPDF('invoice')}
                       disabled={!!downloadingType}
                     >
@@ -316,8 +322,14 @@ export default function ProjectDetailScreen() {
                         <ActivityIndicator size="small" color={theme.success} />
                       ) : (
                         <>
-                          <Ionicons name="document-text" size={20} color={theme.success} />
-                          <Text style={[styles.pdfButtonText, { color: theme.success }]}>Facture</Text>
+                          <View style={[styles.pdfIcon, { backgroundColor: theme.success + '15' }]}>
+                            <Ionicons name="document-text" size={20} color={theme.success} />
+                          </View>
+                          <View style={{flex: 1}}>
+                            <Text style={[styles.pdfButtonText, { color: theme.text }]}>Facture détaillée</Text>
+                            <Text style={{ fontSize: 11, color: theme.textSecondary }}>Format PDF</Text>
+                          </View>
+                          <Ionicons name="download-outline" size={20} color={theme.textTertiary} />
                         </>
                       )}
                     </TouchableOpacity>
@@ -353,7 +365,8 @@ export default function ProjectDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 10,
+    paddingTop: 10,
+    paddingHorizontal: 16,
   },
   center: {
     flex: 1,
@@ -361,122 +374,171 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   budgetCard: {
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 16,
+    padding: 24,
+    borderRadius: 24,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+      },
+      android: { elevation: 3 },
+    }),
   },
   budgetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  budgetItem: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   budgetLabel: {
-    fontSize: 12,
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 6,
   },
-  budgetValue: {
+  mainValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  currency: {
     fontSize: 18,
+    fontWeight: '600',
+  },
+  percentBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  percentText: {
+    fontSize: 13,
     fontWeight: '700',
   },
   progressBarBg: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
+    marginBottom: 20,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  progressText: {
+  budgetFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  footerItem: {
+    flex: 1,
+  },
+  footerLabel: {
     fontSize: 12,
-    marginTop: 8,
-    textAlign: 'center',
+    marginBottom: 2,
+  },
+  footerValue: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  verticalDivider: {
+    width: 1,
+    height: 24,
+    marginHorizontal: 16,
   },
   tabContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    marginBottom: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
   },
   tab: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
+    paddingVertical: 14,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
   },
   content: {
     flex: 1,
   },
   statsContainer: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
   },
   statCard: {
+    width: (width - 56) / 2, // 2 colonnes avec padding (20*2) et gap (16)
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 12,
-    gap: 12,
+    gap: 14,
   },
   statIcon: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statContent: {
     flex: 1,
+    justifyContent: 'center',
   },
   statLabel: {
-    fontSize: 12,
-    marginBottom: 4,
+    fontSize: 11,
+    marginBottom: 2,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 24,
+    marginBottom: 16,
   },
   pdfButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 100,
+    gap: 16,
+    marginBottom: 40,
   },
   pdfButton: {
-    flex: 1,
-    minWidth: '30%',
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 8,
+    gap: 16,
+  },
+  pdfIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pdfButtonText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
+    marginBottom: 4,
   },
   fab: {
     position: 'absolute',

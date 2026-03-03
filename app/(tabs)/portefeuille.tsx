@@ -73,12 +73,14 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     marginTop: 10,
+    paddingHorizontal: 16,
   },
   accountBadge: { 
     paddingHorizontal: 14, 
     paddingVertical: 8, 
     borderRadius: 10,
     marginBottom: 20,
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',

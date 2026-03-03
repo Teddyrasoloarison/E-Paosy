@@ -32,6 +32,10 @@ export default function ProjectTransactionList({ project }: Props) {
     setSelectedTransactionId(transaction.id);
   }, []);
 
+  const handleEditTransaction = useCallback((transaction: ProjectTransaction) => {
+    setSelectedTransactionId(transaction.id);
+  }, []);
+
   const handleDeleteTransaction = useCallback((transaction: ProjectTransaction) => {
     setTransactionToDelete(transaction);
   }, []);
@@ -124,7 +128,7 @@ export default function ProjectTransactionList({ project }: Props) {
           const isOverBudget = hasRealCost && costDiff > 0;
 
           return (
-            <TouchableOpacity 
+            <View 
               style={[
                 styles.transactionCard, 
                 { 
@@ -132,35 +136,81 @@ export default function ProjectTransactionList({ project }: Props) {
                   borderColor: theme.border,
                 },
               ]}
-              onPress={() => handleTransactionPress(item)}
-              activeOpacity={0.7}
             >
-              <View style={[styles.iconContainer, { backgroundColor: projectColor + '20' }]}>
-                <Ionicons 
-                  name="receipt" 
-                  size={20} 
-                  color={projectColor} 
-                />
+              {/* Top Row: Icon - Name - Buttons */}
+              <View style={styles.topRow}>
+                {/* Top Left: Icon */}
+                <View style={[styles.iconContainer, { backgroundColor: projectColor + '20' }]}>
+                  <Ionicons 
+                    name="receipt" 
+                    size={24} 
+                    color={projectColor} 
+                  />
+                </View>
+
+                {/* Top Center: Name */}
+                <View style={styles.nameContainer}>
+                  <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+                    {item.name || 'Sans nom'}
+                  </Text>
+                </View>
+
+                {/* Top Right: Edit and Delete buttons */}
+                <View style={styles.buttonsContainer}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: projectColor + '15' }]}
+                    onPress={() => handleEditTransaction(item)}
+                  >
+                    <Ionicons name="pencil-outline" size={14} color={projectColor} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.error + '15' }]}
+                    onPress={() => handleDeleteTransaction(item)}
+                  >
+                    <Ionicons name="trash-outline" size={14} color={theme.error} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              <View style={styles.info}>
-                <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-                  {item.name || 'Sans nom'}
-                </Text>
-                {item.description ? (
-                  <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {item.description}
-                  </Text>
-                ) : null}
-                
-                {/* Cost badges */}
-                <View style={styles.costBadges}>
+              <View style={styles.bottomRow}>
+                {/* Bottom Left: Description */}
+                <View style={styles.descriptionContainer}>
+                  {item.description ? (
+                    <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={2} ellipsizeMode="tail">
+                      {item.description}
+                    </Text>
+                  ) : null}
+                </View>
+
+                {/* Bottom Right: Cost badges and Diff badge (vertical stack) */}
+                <View style={styles.badgesContainer}>
+                  {/* Top: Diff Badge (haut) */}
+                  {hasRealCost && (
+                    <View style={[
+                      styles.diffBadge, 
+                      { backgroundColor: isOverBudget ? theme.error + '15' : theme.success + '15' }
+                    ]}>
+                      <Ionicons 
+                        name={isOverBudget ? "arrow-up" : "arrow-down"} 
+                        size={12} 
+                        color={isOverBudget ? theme.error : theme.success} 
+                      />
+                      <Text style={[
+                        styles.diffText, 
+                        { color: isOverBudget ? theme.error : theme.success }
+                      ]}>
+                        {Math.abs(costDiff).toLocaleString()} Ar
+                      </Text>
+                    </View>
+                  )}
+                  {/* Middle: Estimated Cost */}
                   <View style={[styles.costBadge, { backgroundColor: projectColor + '15' }]}>
                     <Ionicons name="calculator-outline" size={12} color={projectColor} />
                     <Text style={[styles.costBadgeText, { color: projectColor }]}>
                       Est: {item.estimatedCost.toLocaleString()} Ar
                     </Text>
                   </View>
+                  {/* Bottom: Real Cost */}
                   {hasRealCost && (
                     <View style={[styles.costBadge, { backgroundColor: theme.success + '15' }]}>
                       <Ionicons name="cash-outline" size={12} color={theme.success} />
@@ -171,34 +221,7 @@ export default function ProjectTransactionList({ project }: Props) {
                   )}
                 </View>
               </View>
-
-              <View style={styles.statusContainer}>
-                {hasRealCost && (
-                  <View style={[
-                    styles.diffBadge, 
-                    { backgroundColor: isOverBudget ? theme.error + '15' : theme.success + '15' }
-                  ]}>
-                    <Ionicons 
-                      name={isOverBudget ? "arrow-up" : "arrow-down"} 
-                      size={12} 
-                      color={isOverBudget ? theme.error : theme.success} 
-                    />
-                    <Text style={[
-                      styles.diffText, 
-                      { color: isOverBudget ? theme.error : theme.success }
-                    ]}>
-                      {Math.abs(costDiff).toLocaleString()} Ar
-                    </Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={[styles.deleteButton, { backgroundColor: theme.error + '15' }]}
-                  onPress={() => handleDeleteTransaction(item)}
-                >
-                  <Ionicons name="trash-outline" size={14} color={theme.error} />
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
+            </View>
           );
         }}
         ListEmptyComponent={
@@ -284,54 +307,83 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   transactionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 10,
-    marginHorizontal: 16,
+    flexDirection: 'column',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 14,
+    marginHorizontal: 2,
     borderWidth: 1,
   },
+  // Top Row: Icon - Name - Buttons
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  info: { 
-    flex: 1, 
-    marginLeft: 12,
+  nameContainer: {
+    flex: 1,
+    marginHorizontal: 12,
   },
   name: { 
-    fontSize: 15, 
-    fontWeight: '600',
+    fontSize: 16, 
+    fontWeight: '700',
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Bottom Row: Description - Cost & Diff Badges
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  descriptionContainer: {
+    flex: 1,
+    marginRight: 12,
+    padding: 8,
+    minHeight: 50,
+    justifyContent: 'center',
   },
   description: { 
-    fontSize: 12, 
-    marginTop: 2,
+    fontSize: 13, 
+  },
+  badgesContainer: {
+    alignItems: 'flex-end',
   },
   costBadges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 6,
+    justifyContent: 'flex-end',
   },
   costBadge: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     paddingHorizontal: 6,
-    paddingVertical: 3,
+    marginTop: 3,
+    paddingVertical: 4,
     borderRadius: 6,
   },
   costBadgeText: {
     fontSize: 10,
     marginLeft: 3,
     fontWeight: '600'
-  },
-  statusContainer: { 
-    alignItems: 'flex-end',
-    gap: 8,
   },
   diffBadge: { 
     flexDirection: 'row',
@@ -340,17 +392,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6,
     gap: 3,
+    marginTop: 6,
   },
   diffText: {
     fontSize: 11,
     fontWeight: '600',
-  },
-  deleteButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   emptyContainer: {
     alignItems: 'center',

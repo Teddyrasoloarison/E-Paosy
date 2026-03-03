@@ -214,13 +214,14 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    padding: 20,
+    paddingTop: 20,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
+    paddingHorizontal: 16,
   },
   menuButton: {
     width: 40,

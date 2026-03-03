@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 8,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 13,

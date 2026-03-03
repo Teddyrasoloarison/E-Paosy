@@ -161,9 +161,9 @@ const onSubmit: SubmitHandler<ProjectTransactionFormData> = (data) => {
                   <Ionicons name="calculator-outline" size={20} color={projectColor} />
                   <TextInput 
                     style={[styles.input, { color: theme.text }]} 
-                    placeholder="0"
+                    placeholder="Ex: 50000"
                     placeholderTextColor={theme.textTertiary}
-                    value={value?.toString() || ''} 
+                    value={(value === undefined || value === 0) ? '' : value?.toString()} 
                     onChangeText={onChange}
                     keyboardType="numeric"
                   />
@@ -182,9 +182,9 @@ const onSubmit: SubmitHandler<ProjectTransactionFormData> = (data) => {
                   <Ionicons name="cash-outline" size={20} color={projectColor} />
                   <TextInput 
                     style={[styles.input, { color: theme.text }]} 
-                    placeholder="0"
+                    placeholder="Ex: 50000"
                     placeholderTextColor={theme.textTertiary}
-                    value={value?.toString() || ''} 
+                    value={(value === undefined || value === 0) ? '' : value?.toString()} 
                     onChangeText={onChange}
                     keyboardType="numeric"
                   />

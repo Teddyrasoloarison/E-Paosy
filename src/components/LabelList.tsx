@@ -135,7 +135,7 @@ export default function LabelList() {
 
 const styles = StyleSheet.create({
   listContainer: { 
-    padding: 12,
+    padding: 16,
     paddingBottom: 100,
   },
   center: {

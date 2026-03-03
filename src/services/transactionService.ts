@@ -1,4 +1,5 @@
 import {
+  PaginatedTransactions,
   TransactionFilters,
   TransactionItem,
   TransactionPayload,
@@ -6,15 +7,30 @@ import {
 import api from "./api";
 
 export const transactionService = {
-  // GET avec tous les filtres du Swagger
+  // GET avec tous les filtres du Swagger et pagination
   getTransactions: async (
     accountId: string,
     filters?: TransactionFilters,
-  ): Promise<TransactionItem[]> => {
-    const response = await api.get(`/account/${accountId}/transaction`, {
-      params: filters,
-    });
-    return response.data;
+  ): Promise<PaginatedTransactions> => {
+    try {
+      console.log("transactionService.getTransactions - calling API with:", { accountId, filters });
+      
+      // Ensure pagination params are integers (double safety)
+      const params = {
+        ...filters,
+        page: filters?.page ? Number(filters.page) : 1,
+        pageSize: filters?.pageSize ? Number(filters.pageSize) : 10,
+      };
+      
+      const response = await api.get(`/account/${accountId}/transaction`, {
+        params,
+      });
+      console.log("transactionService.getTransactions - response:", response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error("transactionService.getTransactions - error:", error.response?.data || error.message);
+      throw error;
+    }
   },
 
   // services/transactionService.ts

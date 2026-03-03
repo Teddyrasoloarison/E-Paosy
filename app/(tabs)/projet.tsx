@@ -31,7 +31,7 @@ export default function ProjetScreen() {
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
-<DashboardShell title="Projets" subtitle="Gérez vos projets" icon="flag-outline">
+    <DashboardShell title="Projets" subtitle="Gérez vos projets" icon="flag-outline">
       
       <View style={styles.container}>
         <View style={{ flex: 1 }}>
@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: 10,
+    paddingHorizontal: 16,
   },
   fab: {
     position: 'absolute',
@@ -82,3 +83,4 @@ const styles = StyleSheet.create({
     }),
   },
 });
+

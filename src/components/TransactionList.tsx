@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
@@ -9,6 +9,9 @@ import { useThemeStore } from '../store/useThemeStore';
 import { TransactionFilters, TransactionItem } from '../types/transaction';
 import EditTransactionModal from './EditTransactionModal';
 import ConfirmModal from './ConfirmModal';
+
+// Nombre de transactions par page
+const PAGE_SIZE = 10;
 
 // Mapping des types vers les icônes et couleurs
 const TRANSACTION_TYPE_CONFIG: Record<string, { icon: string; color: string }> = {
@@ -22,17 +25,54 @@ export default function TransactionList() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<TransactionItem | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const [isScrollingDown, setIsScrollingDown] = useState(false);
+  const paginationAnim = useRef(new Animated.Value(0)).current;
+  const filterAnim = useRef(new Animated.Value(1)).current;
+  const flatListRef = useRef<FlatList>(null);
+  const lastScrollY = useRef(0);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
-  const { transactions, isLoading, deleteTransaction } = useTransactions(filters);
+  const { transactions, isLoading, deleteTransaction, totalTransactions, error, refetch } = useTransactions({
+    ...filters,
+    page: currentPage,
+    pageSize: PAGE_SIZE,
+  });
+
+  // Debug: Log transaction data when it changes
+  useEffect(() => {
+    console.log("TransactionList - transactions:", transactions);
+    console.log("TransactionList - totalTransactions:", totalTransactions);
+    console.log("TransactionList - isLoading:", isLoading);
+    console.log("TransactionList - error:", error);
+    console.log("TransactionList - currentPage:", currentPage);
+    console.log("TransactionList - filters:", filters);
+  }, [transactions, totalTransactions, isLoading, error, currentPage, filters]);
+
+  // Debug: Reset filters when component mounts
+  // Add a ref to track if we've initially loaded
+  const isInitialMount = React.useRef(true);
+
+  // Reset on first mount
+  React.useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      console.log("TransactionList - First mount, resetting filters and page");
+      setFilters({});
+      setCurrentPage(1);
+    }
+  }, []);
   const { wallets } = useWallets();
 
-  // Sort transactions by creation date (newest first - based on id)
-  const sortedTransactions = useMemo(() => {
-    if (!transactions) return [];
-    return [...transactions].sort((a, b) => b.id.localeCompare(a.id));
-  }, [transactions]);
+  // Calculer le nombre total de pages basé sur le total réel du serveur
+  const totalPages = Math.ceil(totalTransactions / PAGE_SIZE);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.type, filters.walletId]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -84,6 +124,46 @@ export default function TransactionList() {
     }
   };
 
+  // Gérer le scroll pour détecter si on est en bas de la liste
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const currentScrollY = contentOffset.y;
+    
+    // Détecter si on est en bas de la liste
+    const isAtBottomValue = layoutMeasurement.height + currentScrollY >= contentSize.height - 50;
+    
+    if (isAtBottomValue !== isAtBottom) {
+      setIsAtBottom(isAtBottomValue);
+      
+      // Animation slide-in/slide-out pour la pagination
+      Animated.timing(paginationAnim, {
+        toValue: isAtBottomValue ? 1 : 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+    
+    // Afficher le bouton filtre seulement quand on est proche du haut de la page
+    // Le montrer si scrollY < 50, sinon le cacher
+    const shouldShowFilter = currentScrollY < 50;
+    
+    if (shouldShowFilter !== isScrollingDown) {
+      setIsScrollingDown(shouldShowFilter);
+      Animated.timing(filterAnim, {
+        toValue: shouldShowFilter ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+    
+    lastScrollY.current = currentScrollY;
+  };
+
+  // Initialiser l'animation au montage
+  useEffect(() => {
+    paginationAnim.setValue(0);
+  }, []);
+
   if (isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -92,10 +172,38 @@ export default function TransactionList() {
     );
   }
 
+  // Show error state
+  if (error) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={theme.error} />
+        <Text style={[styles.errorText, { color: theme.error, marginTop: 16 }]}>
+          Erreur lors du chargement des transactions
+        </Text>
+        <Text style={[styles.errorDetail, { color: theme.textSecondary, marginTop: 8 }]}>
+          {error.message || 'Vérifiez votre connexion'}
+        </Text>
+        <TouchableOpacity 
+          style={[styles.retryButton, { backgroundColor: theme.primary, marginTop: 20 }]}
+          onPress={() => refetch()}
+        >
+          <Text style={styles.retryText}>Réessayer</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Floating Filter Button */}
-      <View style={styles.floatingFilterContainer}>
+      {/* Floating Filter Button - animated hide/show on scroll */}
+      <Animated.View 
+        style={[
+          styles.floatingFilterContainer,
+          {
+            opacity: filterAnim,
+          }
+        ]}
+      >
         <TouchableOpacity 
           style={[
             styles.floatingFilterButton, 
@@ -115,14 +223,16 @@ export default function TransactionList() {
             )}
           </View>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* LIST */}
       <FlatList
-        data={sortedTransactions}
+        data={transactions}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.primary + '15' }]}>
@@ -221,6 +331,49 @@ export default function TransactionList() {
           );
         }}
       />
+
+      {/* Pagination Controls with arrows - slide in from bottom when at bottom */}
+      {transactions.length > 0 && (
+        <Animated.View 
+          style={[
+            styles.paginationContainer,
+            {
+              transform: [{
+                translateY: paginationAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [100, 0], // Slide from bottom
+                }),
+              }],
+              opacity: paginationAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+              }),
+            }
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+            onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <Ionicons name="arrow-back" size={22} color={currentPage === 1 ? theme.textTertiary : theme.primary} />
+          </TouchableOpacity>
+          
+          <View style={styles.paginationInfo}>
+            <Text style={[styles.paginationText, { color: theme.text }]}>
+              {currentPage} / {totalPages}
+            </Text>
+          </View>
+          
+          <TouchableOpacity
+            style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
+            onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <Ionicons name="arrow-forward" size={22} color={currentPage === totalPages ? theme.textTertiary : theme.primary} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       {/* Filter Modal */}
       <Modal
@@ -380,7 +533,7 @@ const styles = StyleSheet.create({
   listContainer: { 
     paddingTop: 70,
     paddingBottom: 100,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
   },
   center: { 
     flex: 1, 
@@ -439,8 +592,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 16,
+    marginHorizontal: 16,
     marginBottom: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   iconContainer: {
@@ -652,5 +806,64 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  // Pagination Styles
+  paginationContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    gap: 20,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 100,
+    backgroundColor: '#F0F0F0',
+    gap: 4,
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  paginationInfo: {
+    alignItems: 'center',
+  },
+  paginationText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  paginationCount: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  errorDetail: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

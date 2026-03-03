@@ -9,6 +9,7 @@ export default function TabLayout() {
       <Stack.Screen name="label" />
       <Stack.Screen name="portefeuille" />
       <Stack.Screen name="transaction" />
+      <Stack.Screen name="calendar" />
       <Stack.Screen name="objectif" />
       <Stack.Screen name="configuration" />
       <Stack.Screen name="projet" />

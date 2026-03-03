@@ -57,3 +57,13 @@ export interface WalletResponse {
   };
   values: Wallet[];
 }
+
+export interface WalletStatistics {
+  wallet?: Wallet;
+  totalIncome: number;
+  totalExpense: number;
+  currentBalance: number;
+  transactionCount: number;
+  incomeCount: number;
+  expenseCount: number;
+}

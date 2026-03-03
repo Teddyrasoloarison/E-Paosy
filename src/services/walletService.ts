@@ -4,7 +4,8 @@ import {
   Wallet, 
   CreateWalletDto, 
   UpdateWalletDto, 
-  UpdateAutomaticIncomeDto 
+  UpdateAutomaticIncomeDto,
+  WalletStatistics 
 } from '../types/wallet';
 
 export const walletService = {
@@ -17,6 +18,12 @@ export const walletService = {
   // GET : Récupérer un wallet spécifique
   getWalletById: async (accountId: string, walletId: string): Promise<Wallet> => {
     const response = await api.get(`/account/${accountId}/wallet/${walletId}`);
+    return response.data;
+  },
+
+  // GET : Récupérer les statistiques d'un wallet
+  getWalletStatistics: async (accountId: string, walletId: string): Promise<WalletStatistics> => {
+    const response = await api.get(`/account/${accountId}/wallet/${walletId}/statistics`);
     return response.data;
   },
 

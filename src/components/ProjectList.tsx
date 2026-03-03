@@ -167,7 +167,7 @@ export default function ProjectList() {
                     style={[styles.actionButton, { backgroundColor: theme.warning + '20' }]}
                     onPress={() => handleArchiveProject(item)}
                   >
-                    <Ionicons name="archive" size={16} color={theme.warning} />
+                    <Ionicons name="trash" size={16} color={theme.warning} />
                   </TouchableOpacity>
                 </View>
               </View>

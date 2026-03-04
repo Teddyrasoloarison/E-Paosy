@@ -8,6 +8,7 @@ export interface TransactionItem {
   description: string;
   walletId: string;
   accountId: string;
+  goalId?: string | null;   // ID de l'objectif lié (pour épargner vers un objectif)
   createdAt?: string | null;
   labels: { id: string; name: string; color: string; iconRef?: string | null }[];
 }
@@ -21,6 +22,7 @@ export interface TransactionPayload {
   labels: { id: string }[]; // On envoie des objets avec ID
   walletId: string;         // Requis dans le body selon Swagger
   accountId: string;        // Requis dans le body selon Swagger
+  goalId?: string;          // ID de l'objectif lié (optionnel)
 }
 
 export interface TransactionFilters {
@@ -51,4 +53,5 @@ export interface TransactionFormData {
   date: string | Date;
   walletId: string;
   labels: string; // Un seul label (ou chaîne vide si aucun)
+  goalId?: string; // Objectif lié (optionnel)
 }

@@ -11,25 +11,21 @@ export const useGoals = (filters?: GoalFilters) => {
     queryKey: ['goals', accountId, filters],
     queryFn: async () => {
       if (!accountId) {
-        return { values: [], pagination: { totalPage: 0, page: 1, hasNext: false, hasPrev: false } };
+        return { values: [] };
       }
       const result = await goalService.getGoals(accountId, filters);
       
       // Handle case where API returns array directly
       if (Array.isArray(result)) {
-        return { 
-          values: result, 
-          pagination: { totalPage: 1, page: 1, hasNext: false, hasPrev: false } 
-        };
+        return { values: result };
       }
       
       if (!result || typeof result !== 'object') {
-        return { values: [], pagination: { totalPage: 0, page: 1, hasNext: false, hasPrev: false } };
+        return { values: [] };
       }
       
       return {
         values: result.values || [],
-        pagination: result.pagination || { totalPage: 0, page: 1, hasNext: false, hasPrev: false }
       };
     },
     enabled: !!accountId,
@@ -61,15 +57,10 @@ export const useGoals = (filters?: GoalFilters) => {
     },
   });
 
-  // Calculate total goals from pagination
-  const totalGoals = query.data?.pagination 
-    ? query.data.pagination.totalPage * (filters?.pageSize || 5)
-    : 0;
-
   return {
     ...query,
     goals: query.data?.values || [],
-    totalGoals: query.data?.pagination?.totalPage || 0,
+    totalGoals: query.data?.values?.length || 0,
     createGoal: createMutation.mutate,
     updateGoal: updateMutation.mutate,
     archiveGoal: archiveMutation.mutate,
@@ -78,3 +69,4 @@ export const useGoals = (filters?: GoalFilters) => {
     isArchiving: archiveMutation.isPending,
   };
 };
+

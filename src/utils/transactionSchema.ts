@@ -15,6 +15,7 @@ export const transactionSchema = z.object({
   date: z.string().or(z.date()),
   walletId: z.string().uuid("Sélectionnez un portefeuille valide"),
   labels: z.string().optional(),
+  goalId: z.string().optional(), // Objectif lié (optionnel)
 });
 
 export type TransactionFormData = {
@@ -24,4 +25,5 @@ export type TransactionFormData = {
   date: string | Date;
   walletId: string;
   labels: string;
+  goalId?: string;
 };

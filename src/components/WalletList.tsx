@@ -66,6 +66,15 @@ function WalletStatisticsModal({
                 </Text>
               </View>
 
+              {/* Nombre de transactions */}
+              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Ionicons name="receipt" size={24} color={theme.primary} />
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Transactions</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>
+                  {statistics?.transactionCount ?? 0}
+                </Text>
+              </View>
+
               {/* Total des revenus */}
               <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
                 <Ionicons name="arrow-down-circle" size={24} color={theme.success} />
@@ -81,33 +90,6 @@ function WalletStatisticsModal({
                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Total dépenses</Text>
                 <Text style={[styles.statValue, { color: theme.error }]}>
                   -{(statistics?.totalExpense ?? 0).toLocaleString()} Ar
-                </Text>
-              </View>
-
-              {/* Nombre de transactions */}
-              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                <Ionicons name="receipt" size={24} color={theme.primary} />
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Transactions</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>
-                  {statistics?.transactionCount ?? 0}
-                </Text>
-              </View>
-
-              {/* Nombre de revenus */}
-              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                <Ionicons name="checkmark-done-circle" size={24} color={theme.success} />
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Revenus</Text>
-                <Text style={[styles.statValue, { color: theme.success }]}>
-                  {statistics?.incomeCount ?? 0}
-                </Text>
-              </View>
-
-              {/* Nombre de dépenses */}
-              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                <Ionicons name="remove-circle" size={24} color={theme.error} />
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Dépenses</Text>
-                <Text style={[styles.statValue, { color: theme.error }]}>
-                  {statistics?.expenseCount ?? 0}
                 </Text>
               </View>
             </View>
@@ -276,7 +258,30 @@ export default function WalletList() {
               </View>
 
               <View style={styles.balanceContainer}>
-                <View style={styles.actionButtons}>
+                <View style={styles.topActionButtons}>
+                  {/* Bouton pour supprimer */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.error + '20' }]}
+                    onPress={() => handleDeleteWallet(item)}
+                  >
+                    <Ionicons name="trash" size={16} color={theme.error} />
+                  </TouchableOpacity>
+                  {/* Bouton pour revenu automatique */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.success + '20' }]}
+                    onPress={() => handleAutomaticIncome(item)}
+                  >
+                    <Ionicons name="settings" size={16} color={theme.success} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.bottomActionButtons}>
+                  {/* Bouton pour modifier le portefeuille */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
+                    onPress={() => handleEditWallet(item)}
+                  >
+                    <Ionicons name="pencil" size={16} color={theme.primary} />
+                  </TouchableOpacity>
                   {/* Bouton pour voir les statistiques */}
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.info + '20' }]}
@@ -286,27 +291,6 @@ export default function WalletList() {
                     }}
                   >
                     <Ionicons name="stats-chart" size={16} color={theme.info} />
-                  </TouchableOpacity>
-                  {/* Bouton pour modifier le portefeuille */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
-                    onPress={() => handleEditWallet(item)}
-                  >
-                    <Ionicons name="pencil" size={16} color={theme.primary} />
-                  </TouchableOpacity>
-                  {/* Bouton pour revenu automatique */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.success + '20' }]}
-                    onPress={() => handleAutomaticIncome(item)}
-                  >
-                    <Ionicons name="settings" size={16} color={theme.success} />
-                  </TouchableOpacity>
-                  {/* Bouton pour supprimer */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.error + '20' }]}
-                    onPress={() => handleDeleteWallet(item)}
-                  >
-                    <Ionicons name="trash" size={16} color={theme.error} />
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.balance, { color: walletColor }]}>
@@ -430,6 +414,7 @@ const styles = StyleSheet.create({
   balance: { 
     fontSize: 17, 
     fontWeight: '800',
+    paddingTop: 5,
   },
   inactiveTag: { 
     fontSize: 11, 
@@ -476,7 +461,16 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
+  },
+  topActionButtons: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 8,
+  },
+  bottomActionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
   },
   actionButton: {
     width: 32,
@@ -484,6 +478,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: -5,
   },
   // Styles pour le modal des statistiques
   overlay: {

@@ -3,7 +3,9 @@ import { GoalItem, GoalPayload, GoalFilters, GoalResponse } from '../types/goal'
 
 export const goalService = {
   getGoals: async (accountId: string, filters?: GoalFilters): Promise<GoalResponse> => {
-    const response = await api.get(`/account/${accountId}/goal`, { params: filters });
+    // Remove page and pageSize from filters
+    const { page, pageSize, ...restFilters } = filters || {};
+    const response = await api.get(`/account/${accountId}/goal`, { params: restFilters });
     return response.data;
   },
 

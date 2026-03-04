@@ -23,19 +23,13 @@ import EditGoalModal from './EditGoalModal';
 import ConfirmModal from './ConfirmModal';
 import { GoalCard } from './GoalCard';
 
-// Nombre d'objectifs par page
-const PAGE_SIZE = 5;
-
 export default function GoalList() {
   const [filters, setFilters] = useState<GoalFilters>({});
   const [selectedGoal, setSelectedGoal] = useState<GoalItem | null>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [goalToDelete, setGoalToDelete] = useState<GoalItem | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isAtBottom, setIsAtBottom] = useState(false);
   const [isScrollingDown, setIsScrollingDown] = useState(false);
-  const paginationAnim = useRef(new Animated.Value(0)).current;
   const filterAnim = useRef(new Animated.Value(1)).current;
   const flatListRef = useRef<FlatList>(null);
   const lastScrollY = useRef(0);
@@ -43,11 +37,7 @@ export default function GoalList() {
   const theme = isDarkMode ? Colors.dark : Colors.light;
   const { wallets } = useWallets();
 
-  const { goals, isLoading, archiveGoal, totalGoals, error, refetch } = useGoals({
-    ...filters,
-    page: currentPage,
-    pageSize: PAGE_SIZE,
-  });
+  const { goals, isLoading, archiveGoal, totalGoals, error, refetch } = useGoals(filters);
 
   // Debug: Log goal data when it changes
   useEffect(() => {
@@ -55,9 +45,8 @@ export default function GoalList() {
     console.log("GoalList - totalGoals:", totalGoals);
     console.log("GoalList - isLoading:", isLoading);
     console.log("GoalList - error:", error);
-    console.log("GoalList - currentPage:", currentPage);
     console.log("GoalList - filters:", filters);
-  }, [goals, totalGoals, isLoading, error, currentPage, filters]);
+  }, [goals, totalGoals, isLoading, error, filters]);
 
   // Reset on first mount
   const isInitialMount = React.useRef(true);
@@ -65,19 +54,10 @@ export default function GoalList() {
   React.useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      console.log("GoalList - First mount, resetting filters and page");
+      console.log("GoalList - First mount, resetting filters");
       setFilters({});
-      setCurrentPage(1);
     }
   }, []);
-
-  // Calculer le nombre total de pages basé sur le total réel du serveur
-  const totalPages = Math.ceil(totalGoals / PAGE_SIZE);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters.walletId, filters.status, filters.name]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -132,24 +112,10 @@ export default function GoalList() {
     }
   };
 
-  // Gérer le scroll pour détecter si on est en bas de la liste
+  // Gérer le scroll pour afficher/masquer le bouton filtre
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const { contentOffset } = event.nativeEvent;
     const currentScrollY = contentOffset.y;
-    
-    // Détecter si on est en bas de la liste
-    const isAtBottomValue = layoutMeasurement.height + currentScrollY >= contentSize.height - 50;
-    
-    if (isAtBottomValue !== isAtBottom) {
-      setIsAtBottom(isAtBottomValue);
-      
-      // Animation slide-in/slide-out pour la pagination
-      Animated.timing(paginationAnim, {
-        toValue: isAtBottomValue ? 1 : 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
     
     // Afficher le bouton filtre seulement quand on est proche du haut de la page
     const shouldShowFilter = currentScrollY < 50;
@@ -165,11 +131,6 @@ export default function GoalList() {
     
     lastScrollY.current = currentScrollY;
   };
-
-  // Initialiser l'animation au montage
-  useEffect(() => {
-    paginationAnim.setValue(0);
-  }, []);
 
   if (isLoading) {
     return (
@@ -258,49 +219,6 @@ export default function GoalList() {
           />
         )}
       />
-
-      {/* Pagination Controls with arrows - slide in from bottom when at bottom */}
-      {goals.length > 0 && (
-        <Animated.View 
-          style={[
-            styles.paginationContainer,
-            {
-              transform: [{
-                translateY: paginationAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [100, 0], // Slide from bottom
-                }),
-              }],
-              opacity: paginationAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
-            }
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
-            onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-          >
-            <Ionicons name="arrow-back" size={22} color={currentPage === 1 ? theme.textTertiary : theme.primary} />
-          </TouchableOpacity>
-          
-          <View style={styles.paginationInfo}>
-            <Text style={[styles.paginationText, { color: theme.text }]}>
-              {currentPage} / {totalPages || 1}
-            </Text>
-          </View>
-          
-          <TouchableOpacity
-            style={[styles.paginationButton, currentPage >= totalPages && styles.paginationButtonDisabled]}
-            onPress={() => setCurrentPage(prev => Math.min(totalPages || 1, prev + 1))}
-            disabled={currentPage >= totalPages}
-          >
-            <Ionicons name="arrow-forward" size={22} color={currentPage >= totalPages ? theme.textTertiary : theme.primary} />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
 
       {/* Filter Modal */}
       <Modal
@@ -658,46 +576,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-  },
-  // Pagination Styles
-  paginationContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    gap: 20,
-  },
-  paginationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 100,
-    backgroundColor: '#F0F0F0',
-    gap: 4,
-  },
-  paginationButtonDisabled: {
-    opacity: 0.5,
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  paginationInfo: {
-    alignItems: 'center',
-  },
-  paginationText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  paginationCount: {
-    fontSize: 12,
-    marginTop: 2,
   },
   errorText: {
     fontSize: 16,

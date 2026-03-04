@@ -8,7 +8,7 @@ export const useTransactions = (filters?: TransactionFilters) => {
   const queryClient = useQueryClient();
 
   // Debug: Log accountId when query is made
-  console.log("useTransactions - accountId:", accountId, "filters:", filters);
+  // console.log("useTransactions - accountId:", accountId, "filters:", filters);
 
   // 1. Récupération des transactions avec pagination
   const query = useQuery({
@@ -46,12 +46,12 @@ export const useTransactions = (filters?: TransactionFilters) => {
   });
 
   // Debug: Log the query result
-  console.log("useTransactions query result:", { 
-    dataLength: query.data?.data?.length, 
-    total: query.data?.total,
-    isLoading: query.isLoading,
-    error: query.error 
-  });
+  // console.log("useTransactions query result:", { 
+  //   dataLength: query.data?.data?.length, 
+  //   total: query.data?.total,
+  //   isLoading: query.isLoading,
+  //   error: query.error 
+  // });
 
   // Fonction utilitaire pour rafraîchir toutes les données liées aux finances
   const refreshAllData = () => {

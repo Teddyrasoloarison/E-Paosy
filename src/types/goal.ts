@@ -2,7 +2,7 @@ export interface GoalItem {
   id: string;
   name: string;
   amount: number;
-  currentAmount: number; // Souvent calculé par le backend
+  currentAmount: number; // Montant actuel épargné pour cet objectif
   startingDate: string;
   endingDate: string;
   color: string;
@@ -39,11 +39,5 @@ export interface GoalFilters {
 }
 
 export interface GoalResponse {
-  pagination: {
-    totalPage: number;
-    page: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
   values: GoalItem[];
 }

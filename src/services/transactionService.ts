@@ -13,7 +13,7 @@ export const transactionService = {
     filters?: TransactionFilters,
   ): Promise<PaginatedTransactions> => {
     try {
-      console.log("transactionService.getTransactions - calling API with:", { accountId, filters });
+      // console.log("transactionService.getTransactions - calling API with:", { accountId, filters });
       
       // Ensure pagination params are integers (double safety)
       const params = {
@@ -25,10 +25,10 @@ export const transactionService = {
       const response = await api.get(`/account/${accountId}/transaction`, {
         params,
       });
-      console.log("transactionService.getTransactions - response:", response.data);
+      // console.log("transactionService.getTransactions - response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error("transactionService.getTransactions - error:", error.response?.data || error.message);
+      // console.error("transactionService.getTransactions - error:", error.response?.data || error.message);
       throw error;
     }
   },

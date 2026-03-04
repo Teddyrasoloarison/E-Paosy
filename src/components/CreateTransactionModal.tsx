@@ -4,6 +4,7 @@ import React from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useGoals } from '../hooks/useGoals';
 import { useLabels } from '../hooks/useLabels';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useTransactions } from '../hooks/useTransactions';
@@ -35,6 +36,7 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
       type: 'OUT',
       walletId: '',
       labels: '',
+      goalId: '',
       date: new Date().toISOString(),
     }
   });
@@ -42,6 +44,14 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
   const selectedType = watch('type');
   const selectedLabel = watch('labels') || '';
   const selectedWalletId = watch('walletId');
+  const selectedGoalId = watch('goalId');
+
+  // Fetch goals filtered by selected wallet
+  const { goals } = useGoals({ 
+    status: 'in_progress', 
+    pageSize: 100,
+    walletId: selectedWalletId || undefined 
+  });
 
   const onSubmit: SubmitHandler<TransactionFormData> = (data) => {
     if (!accountId) return;
@@ -55,7 +65,9 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
         labels: data.labels ? [{ id: data.labels }] : [],
         date: new Date(data.date).toISOString(),
         walletId: data.walletId,
-        accountId: accountId
+        accountId: accountId,
+        // Only add goalId if it's selected and type is IN
+        goalId: data.type === 'IN' && data.goalId ? data.goalId : undefined
       }
     };
 
@@ -229,6 +241,79 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
               ))}
             </View>
 
+            {/* Goal Selection - Only show when transaction type is IN */}
+            {selectedType === 'IN' && (
+              <>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Objectif (épargne)</Text>
+                <View style={styles.goalsGrid}>
+                  {/* Option to not link to any goal */}
+                  <TouchableOpacity
+                    style={[
+                      styles.goalChip,
+                      { borderColor: theme.textTertiary },
+                      !selectedGoalId && { backgroundColor: theme.primary }
+                    ]}
+                    onPress={() => setValue('goalId', '')}
+                  >
+                    <Ionicons 
+                      name="remove-circle-outline" 
+                      size={16} 
+                      color={!selectedGoalId ? '#fff' : theme.textTertiary} 
+                    />
+                    <Text style={{ color: !selectedGoalId ? '#fff' : theme.text, fontWeight: '600' }}>
+                      Aucun
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  {goals?.map((goal) => {
+                    const progress = (goal.currentAmount || 0) / goal.amount;
+                    const isCompleted = progress >= 1;
+                    return (
+                      <TouchableOpacity
+                        key={goal.id}
+                        style={[
+                          styles.goalChip,
+                          { borderColor: goal.color },
+                          selectedGoalId === goal.id && { backgroundColor: goal.color },
+                          isCompleted && { opacity: 0.6 }
+                        ]}
+                        onPress={() => !isCompleted && setValue('goalId', goal.id)}
+                        disabled={isCompleted}
+                      >
+                        <Ionicons 
+                          name={isCompleted ? "checkmark-circle" : "flag-outline"} 
+                          size={16} 
+                          color={selectedGoalId === goal.id ? '#fff' : goal.color} 
+                        />
+                        <View style={styles.goalChipContent}>
+                          <Text style={{ 
+                            color: selectedGoalId === goal.id ? '#fff' : theme.text, 
+                            fontWeight: '600',
+                            fontSize: 12
+                          }} numberOfLines={1}>
+                            {goal.name}
+                          </Text>
+                          {!isCompleted && (
+                            <Text style={{ 
+                              color: selectedGoalId === goal.id ? '#fff' : theme.textSecondary, 
+                              fontSize: 10 
+                            }}>
+                              {Math.round(progress * 100)}%
+                            </Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {goals?.length === 0 && (
+                  <Text style={[styles.helperText, { color: theme.textTertiary }]}>
+                    Aucun objectif actif. Créez un objectif d&apos;abord.
+                  </Text>
+                )}
+              </>
+            )}
+
             {/* Submit Button */}
             <TouchableOpacity
               style={[styles.submitBtn, { backgroundColor: theme.primary }, isCreating && { opacity: 0.7 }]}
@@ -300,6 +385,19 @@ const styles = StyleSheet.create({
   },
   labelsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   labelChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1.5 },
+  goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  goalChip: { 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 16, 
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '45%',
+  },
+  goalChipContent: { flex: 1 },
+  helperText: { fontSize: 12, marginTop: 8, fontStyle: 'italic' },
   submitBtn: { padding: 18, borderRadius: 14, marginTop: 28, alignItems: 'center' },
   submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   submitText: { color: '#fff', fontWeight: '700', fontSize: 17 }

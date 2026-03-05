@@ -24,12 +24,17 @@ export const GoalCard = ({ goal, onPress }: Props) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
+  // Check if goal is completed
+  const isCompleted = goal.isCompleted === true;
   const progress = Math.min((goal.currentAmount || 0) / goal.amount, 1);
-  const isExpired = new Date(goal.endingDate) < new Date();
+  const isExpired = new Date(goal.endingDate) < new Date() && !isCompleted;
   
   // Find wallet name
   const wallet = wallets.find(w => w.id === goal.walletId);
   const walletName = wallet?.name || 'Portefeuille';
+
+  // Use gray color for completed goals, red for expired goals
+  const displayColor = isCompleted ? '#9E9E9E' : (isExpired ? '#FF5252' : (goal.color || theme.primary));
 
   const handleDelete = () => {
     archiveGoal(
@@ -45,19 +50,35 @@ export const GoalCard = ({ goal, onPress }: Props) => {
   return (
     <>
       <TouchableOpacity 
-        style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} 
+        style={[
+          styles.card, 
+          { backgroundColor: theme.surface, borderColor: theme.border },
+          (isCompleted || isExpired) && { opacity: 0.7, backgroundColor: theme.backgroundSecondary }
+        ]} 
         onPress={onPress} 
         activeOpacity={0.7}
       >
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <View style={[styles.iconContainer, { backgroundColor: (goal.color || theme.primary) + '20' }]}>
-              <Ionicons name={(goal.iconRef as any) || 'flag-outline'} size={20} color={goal.color || theme.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: displayColor + '20' }]}>
+              <Ionicons 
+                name={isCompleted ? "checkmark-circle" : (goal.iconRef as any) || 'flag-outline'} 
+                size={20} 
+                color={displayColor} 
+              />
             </View>
             <View style={styles.titleTextContainer}>
-              <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{goal.name}</Text>
+              <Text 
+                style={[
+                  styles.name, 
+                  { color: isCompleted ? theme.textTertiary : theme.text }
+                ]} 
+                numberOfLines={1}
+              >
+                {goal.name}
+              </Text>
               <Text style={[styles.dates, { color: theme.textTertiary }]}>
-                jusqu&apos;au {format(new Date(goal.endingDate), 'dd/MM/yy')}
+                {isCompleted ? 'Objectif atteint' : `jusqu'au ${format(new Date(goal.endingDate), 'dd/MM/yy')}`}
               </Text>
             </View>
           </View>
@@ -65,27 +86,31 @@ export const GoalCard = ({ goal, onPress }: Props) => {
 
         <View style={styles.amountRow}>
           <View style={styles.amountInfo}>
-            <Text style={[styles.amountLabel, { color: theme.textSecondary }]}>Objectif</Text>
-            <Text style={[styles.amount, { color: goal.color || theme.primary }]}>
+            <Text style={[styles.amountLabel, { color: theme.textSecondary }]}>
+              {isCompleted ? 'Atteint' : 'Objectif'}
+            </Text>
+            <Text style={[styles.amount, { color: displayColor }]}>
               {goal.amount.toLocaleString()} Ar
             </Text>
           </View>
-          <View style={[styles.walletInfo, { backgroundColor: (goal.color || theme.primary) + '20' }]}>
-            <Ionicons name="wallet-outline" size={14} color={goal.color || theme.primary} />
-            <Text style={[styles.walletName, { color: goal.color || theme.primary }]} numberOfLines={1}>
+          <View style={[styles.walletInfo, { backgroundColor: displayColor + '20' }]}>
+            <Ionicons name="wallet-outline" size={14} color={displayColor} />
+            <Text style={[styles.walletName, { color: displayColor }]} numberOfLines={1}>
               {walletName}
             </Text>
           </View>
         </View>
 
         <View style={styles.actionRow}>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: theme.primary + '15' }]} 
-            onPress={() => setShowEditModal(true)}
-          >
-            <Ionicons name="pencil" size={14} color={theme.primary} />
-            <Text style={[styles.actionText, { color: theme.primary }]}>Modifier</Text>
-          </TouchableOpacity>
+          {!isCompleted && !isExpired && (
+            <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: theme.primary + '15' }]} 
+              onPress={() => setShowEditModal(true)}
+            >
+              <Ionicons name="pencil" size={14} color={theme.primary} />
+              <Text style={[styles.actionText, { color: theme.primary }]}>Modifier</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: theme.error + '15' }]} 
             onPress={() => setShowDeleteModal(true)}
@@ -100,24 +125,33 @@ export const GoalCard = ({ goal, onPress }: Props) => {
             <View 
               style={[
                 styles.progressBarFill, 
-                { width: `${progress * 100}%`, backgroundColor: goal.color || theme.primary }
+                { width: `${progress * 100}%`, backgroundColor: displayColor }
               ]} 
             />
           </View>
           
           <View style={styles.progressInfo}>
             <Text style={[styles.currentAmount, { color: theme.textSecondary }]}>
-              { (goal.currentAmount || 0).toLocaleString() } Ar épargnes
+              {isCompleted 
+                ? `${(goal.currentAmount || 0).toLocaleString()} Ar atteint` 
+                : `${(goal.currentAmount || 0).toLocaleString()} Ar épargnes`
+              }
             </Text>
-            <Text style={[styles.percentage, { color: goal.color || theme.primary }]}>
-              {Math.round(progress * 100)}%
+            <Text style={[styles.percentage, { color: displayColor }]}>
+              {isCompleted ? '100%' : `${Math.round(progress * 100)}%`}
             </Text>
           </View>
         </View>
 
-        {isExpired && progress < 1 && (
+        {isExpired && (
           <View style={[styles.expiredBadge, { backgroundColor: theme.error + '15' }]}>
             <Text style={[styles.expiredText, { color: theme.error }]}>Delai depasse</Text>
+          </View>
+        )}
+
+        {isCompleted && (
+          <View style={[styles.expiredBadge, { backgroundColor: '#4CAF50' + '15' }]}>
+            <Text style={[styles.expiredText, { color: '#4CAF50' }]}>Terminé</Text>
           </View>
         )}
       </TouchableOpacity>

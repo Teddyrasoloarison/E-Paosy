@@ -4,7 +4,6 @@ import React, { useEffect } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
-import { useGoals } from '../hooks/useGoals';
 import { useLabels } from '../hooks/useLabels';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useTransactions } from '../hooks/useTransactions';
@@ -55,7 +54,6 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
         walletId: transaction.walletId,
         labels: transaction.labels && transaction.labels.length > 0 ? transaction.labels[0].id : '',
         date: transaction.date,
-        goalId: transaction.goalId || '',
       });
     }
   }, [transaction, visible, reset]);
@@ -63,14 +61,6 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
   const selectedType = watch('type');
   const selectedLabel = watch('labels') || '';
   const selectedWalletId = watch('walletId');
-  const selectedGoalId = watch('goalId') || '';
-
-  // Fetch goals filtered by selected wallet
-  const { goals } = useGoals({ 
-    status: 'in_progress', 
-    pageSize: 100,
-    walletId: selectedWalletId || undefined 
-  });
 
   const { success: showSuccess, error: showError } = useModernAlert();
 
@@ -95,8 +85,6 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
           date: new Date(data.date).toISOString(),
           walletId: data.walletId,
           accountId: transaction.accountId,
-          // Include goalId only for IN transactions
-          goalId: finalType === 'IN' && data.goalId ? data.goalId : undefined
         } as any
       },
       {
@@ -244,79 +232,6 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
                 </TouchableOpacity>
               ))}
             </View>
-
-            {/* Goal Selection - Only show when transaction type is IN */}
-            {selectedType === 'IN' && (
-              <>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>Objectif (épargne)</Text>
-                <View style={styles.goalsGrid}>
-                  {/* Option to not link to any goal */}
-                  <TouchableOpacity
-                    style={[
-                      styles.goalChip,
-                      { borderColor: theme.textTertiary },
-                      !selectedGoalId && { backgroundColor: theme.primary }
-                    ]}
-                    onPress={() => setValue('goalId', '')}
-                  >
-                    <Ionicons 
-                      name="remove-circle-outline" 
-                      size={16} 
-                      color={!selectedGoalId ? '#fff' : theme.textTertiary} 
-                    />
-                    <Text style={{ color: !selectedGoalId ? '#fff' : theme.text, fontWeight: '600' }}>
-                      Aucun
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  {goals?.map((goal) => {
-                    const progress = (goal.currentAmount || 0) / goal.amount;
-                    const isCompleted = progress >= 1;
-                    return (
-                      <TouchableOpacity
-                        key={goal.id}
-                        style={[
-                          styles.goalChip,
-                          { borderColor: goal.color },
-                          selectedGoalId === goal.id && { backgroundColor: goal.color },
-                          isCompleted && { opacity: 0.6 }
-                        ]}
-                        onPress={() => !isCompleted && setValue('goalId', goal.id)}
-                        disabled={isCompleted}
-                      >
-                        <Ionicons 
-                          name={isCompleted ? "checkmark-circle" : "flag-outline"} 
-                          size={16} 
-                          color={selectedGoalId === goal.id ? '#fff' : goal.color} 
-                        />
-                        <View style={styles.goalChipContent}>
-                          <Text style={{ 
-                            color: selectedGoalId === goal.id ? '#fff' : theme.text, 
-                            fontWeight: '600',
-                            fontSize: 12
-                          }} numberOfLines={1}>
-                            {goal.name}
-                          </Text>
-                          {!isCompleted && (
-                            <Text style={{ 
-                              color: selectedGoalId === goal.id ? '#fff' : theme.textSecondary, 
-                              fontSize: 10 
-                            }}>
-                              {Math.round(progress * 100)}%
-                            </Text>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                {goals?.length === 0 && (
-                  <Text style={[styles.helperText, { color: theme.textTertiary }]}>
-                    Aucun objectif actif. Créez un objectif d&apos;abord.
-                  </Text>
-                )}
-              </>
-            )}
 
             {/* Submit */}
             <TouchableOpacity 

@@ -2,7 +2,8 @@ export interface GoalItem {
   id: string;
   name: string;
   amount: number;
-  currentAmount: number; // Montant actuel épargné pour cet objectif
+  currentAmount: number; // Montant actuel épargnes pour cet objectif
+  isCompleted: boolean; // Whether the goal has been completed
   startingDate: string;
   endingDate: string;
   color: string;

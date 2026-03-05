@@ -173,7 +173,7 @@ export default function CalendarScreen() {
         </View>
         
         <Text style={[styles.transactionAmount, { color: isIncome ? theme.success : theme.error }]}>
-          {isIncome ? '+' : '-'}{displayAmount} Ar
+          {displayAmount} Ar
         </Text>
       </View>
     );

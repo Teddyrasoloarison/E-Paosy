@@ -80,7 +80,7 @@ function WalletStatisticsModal({
                 <Ionicons name="arrow-down-circle" size={24} color={theme.success} />
                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Total revenus</Text>
                 <Text style={[styles.statValue, { color: theme.success }]}>
-                  +{(statistics?.totalIncome ?? 0).toLocaleString()} Ar
+                  {(statistics?.totalIncome ?? 0).toLocaleString()} Ar
                 </Text>
               </View>
 
@@ -89,7 +89,7 @@ function WalletStatisticsModal({
                 <Ionicons name="arrow-up-circle" size={24} color={theme.error} />
                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Total dépenses</Text>
                 <Text style={[styles.statValue, { color: theme.error }]}>
-                  -{(statistics?.totalExpense ?? 0).toLocaleString()} Ar
+                  {(statistics?.totalExpense ?? 0).toLocaleString()} Ar
                 </Text>
               </View>
             </View>

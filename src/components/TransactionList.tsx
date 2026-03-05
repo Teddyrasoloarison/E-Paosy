@@ -309,7 +309,7 @@ export default function TransactionList() {
 
               <View style={styles.rightSection}>
                 <Text style={[styles.amount, { color: isIncome ? theme.success : theme.error }]}>
-                  {isIncome ? '+' : '-'}{displayAmount} Ar
+                  {displayAmount} Ar
                 </Text>
                 
                 <View style={styles.actionButtons}>

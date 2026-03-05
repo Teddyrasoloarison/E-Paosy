@@ -76,6 +76,14 @@ export default function DashboardScreen() {
   const isNegativeBalance = totalBalance < 0;
   const recentTransactionsCount = transactions.length;
 
+  // Calculate total automatic income from active wallets with MENSUAL type
+  const totalAutomaticIncome = activeWallets.reduce((sum, w) => {
+    if (w.walletAutomaticIncome?.type === 'MENSUAL') {
+      return sum + (w.walletAutomaticIncome.amount || 0);
+    }
+    return sum;
+  }, 0);
+
   const handleNewTransaction = () => setTransactionModalVisible(true);
   const handleNewGoal = () => setGoalModalVisible(true);
   const handleNewLabel = () => setLabelModalVisible(true);
@@ -97,7 +105,7 @@ export default function DashboardScreen() {
                 <Ionicons name="wallet" size={24} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.welcomeText}>Solde Total</Text>
               </View>
-              <Text style={styles.balanceText}>{totalBalance.toLocaleString('fr-FR')} Ar</Text>
+              <Text style={styles.balanceText}>{Math.abs(totalBalance).toLocaleString('fr-FR')} Ar</Text>
               <View style={styles.welcomeStats}>
                 <View style={styles.welcomeStatItem}>
                   <Ionicons name="wallet-outline" size={14} color="rgba(255,255,255,0.7)" />
@@ -163,7 +171,14 @@ export default function DashboardScreen() {
 
         <Animated.View style={[getAnimStyle(statsAnim)]}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Revenus automatiques</Text>
+            <View style={styles.sectionTitleRow}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Revenus automatiques</Text>
+              {totalAutomaticIncome > 0 && (
+                <Text style={[styles.automaticIncomeTotal, { color: totalAutomaticIncome >= 0 ? theme.success : theme.error }]}>
+                  {Math.abs(totalAutomaticIncome).toLocaleString('fr-FR')} Ar/mois
+                </Text>
+              )}
+            </View>
             <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>État de vos portefeuilles</Text>
           </View>
           
@@ -181,13 +196,19 @@ export default function DashboardScreen() {
               
               {activeWalletsCount > 0 ? (
                 <View style={styles.walletNamesList}>
-                  {(showAllActiveWallets ? activeWallets : activeWallets.slice(0, 3)).map((wallet) => (
-                    <View key={wallet.id} style={styles.walletNameItem}>
-                      <View style={[styles.walletDot, { backgroundColor: theme.success }]} />
-                      <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>{wallet.name}</Text>
-                      <Text style={[styles.walletAmount, { color: theme.textSecondary }]}>{(wallet.amount || 0).toLocaleString()} Ar</Text>
-                    </View>
-                  ))}
+                  {(showAllActiveWallets ? activeWallets : activeWallets.slice(0, 3)).map((wallet) => {
+                    const autoIncome = wallet.walletAutomaticIncome?.type === 'MENSUAL' ? (wallet.walletAutomaticIncome.amount || 0) : 0;
+                    const isPositiveIncome = autoIncome >= 0;
+                    return (
+                      <View key={wallet.id} style={styles.walletNameItem}>
+                        <View style={[styles.walletDot, { backgroundColor: theme.success }]} />
+                        <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>{wallet.name}</Text>
+                        <Text style={[styles.walletAmount, { color: autoIncome > 0 ? theme.success : theme.textSecondary }]}>
+                          {autoIncome > 0 ? Math.abs(autoIncome).toLocaleString() : (wallet.amount || 0).toLocaleString()} Ar
+                        </Text>
+                      </View>
+                    );
+                  })}
                   {activeWalletsCount > 3 && (
                     <TouchableOpacity onPress={() => setShowAllActiveWallets(!showAllActiveWallets)} style={styles.moreButton}>
                       <Text style={[styles.moreText, { color: theme.primary }]}>
@@ -217,13 +238,18 @@ export default function DashboardScreen() {
               
               {inactiveWalletsCount > 0 ? (
                 <View style={styles.walletNamesList}>
-                  {(showAllInactiveWallets ? inactiveWallets : inactiveWallets.slice(0, 3)).map((wallet) => (
-                    <View key={wallet.id} style={styles.walletNameItem}>
-                      <View style={[styles.walletDot, { backgroundColor: theme.textTertiary }]} />
-                      <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>{wallet.name}</Text>
-                      <Text style={[styles.walletAmount, { color: theme.textSecondary }]}>{(wallet.amount || 0).toLocaleString()} Ar</Text>
-                    </View>
-                  ))}
+                  {(showAllInactiveWallets ? inactiveWallets : inactiveWallets.slice(0, 3)).map((wallet) => {
+                    const autoIncome = wallet.walletAutomaticIncome?.type === 'MENSUAL' ? (wallet.walletAutomaticIncome.amount || 0) : 0;
+                    return (
+                      <View key={wallet.id} style={styles.walletNameItem}>
+                        <View style={[styles.walletDot, { backgroundColor: theme.textTertiary }]} />
+                        <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>{wallet.name}</Text>
+                        <Text style={[styles.walletAmount, { color: autoIncome > 0 ? theme.success : theme.textSecondary }]}>
+                          {autoIncome > 0 ? Math.abs(autoIncome).toLocaleString() : (wallet.amount || 0).toLocaleString()} Ar
+                        </Text>
+                      </View>
+                    );
+                  })}
                   {inactiveWalletsCount > 3 && (
                     <TouchableOpacity onPress={() => setShowAllInactiveWallets(!showAllInactiveWallets)} style={styles.moreButton}>
                       <Text style={[styles.moreText, { color: theme.primary }]}>
@@ -257,6 +283,8 @@ const styles = StyleSheet.create({
   container: { paddingBottom: 40, paddingTop: 8, paddingHorizontal: 16 },
   sectionHeader: { marginBottom: 16, marginTop: 8 },
   sectionTitle: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
+  sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  automaticIncomeTotal: { fontSize: 16, fontWeight: '700' },
   sectionSubtitle: { fontSize: 13, fontWeight: '500' },
   welcomeCard: { borderRadius: 24, padding: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', overflow: 'hidden' },
   welcomeContent: { flex: 1 },

@@ -50,9 +50,11 @@ export default function WeeklyExpenseChart({ transactions }: WeeklyExpenseChartP
         
         if (dayIndex >= 0 && dayIndex < 7) {
           const amount = Math.abs(Number(transaction.amount));
-          if (transaction.type === 'OUT') {
+          // Normalize type: trim + uppercase to handle any whitespace/case differences
+          const normalizedType = String(transaction.type || '').trim().toUpperCase();
+          if (normalizedType === 'OUT') {
             data[dayIndex].expense += amount;
-          } else if (transaction.type === 'IN') {
+          } else if (normalizedType === 'IN') {
             data[dayIndex].income += amount;
           }
         }

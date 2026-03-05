@@ -7,6 +7,7 @@ import { Controller, useForm } from 'react-hook-form';
 import {
   BackHandler,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,

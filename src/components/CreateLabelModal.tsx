@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useLabels } from '../hooks/useLabels';
 import { useModernAlert } from '../hooks/useModernAlert';
@@ -75,11 +75,19 @@ export default function CreateLabelModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <View style={[styles.content, { backgroundColor: theme.surface }]}>
           <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
             <View style={styles.header}>
               <View style={[styles.titleIcon, { backgroundColor: selectedColor + '15' }]}>
                 <Ionicons name={(selectedIcon as any) || 'pricetag'} size={24} color={selectedColor} />
@@ -206,13 +214,13 @@ export default function CreateLabelModal({ visible, onClose }: Props) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   content: { 
     borderTopLeftRadius: 25, 
     borderTopRightRadius: 25, 
@@ -223,6 +231,7 @@ const styles = StyleSheet.create({
       android: { elevation: 10 },
     }),
   },
+  scrollContent: { flexGrow: 1, paddingBottom: 20 },
   handleBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 12 },
   titleIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },

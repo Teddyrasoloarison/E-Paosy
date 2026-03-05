@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useProjects } from '../hooks/useProjects';
@@ -125,10 +125,18 @@ export default function EditProjectModal({ visible, onClose, project }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <View style={[styles.content, { backgroundColor: theme.surface }]}>
           <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
             <View style={styles.header}>
               <View style={[styles.titleIcon, { backgroundColor: (localColor || theme.primary) + '15' }]}>
                 <Ionicons name="folder" size={24} color={localColor || theme.primary} />
@@ -284,14 +292,15 @@ export default function EditProjectModal({ visible, onClose, project }: Props) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  content: { 
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  scrollContent: { flexGrow: 1, paddingBottom: 20 },
+  content: {
     borderTopLeftRadius: 25, 
     borderTopRightRadius: 25, 
     padding: 20, 

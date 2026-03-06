@@ -1,7 +1,8 @@
 export type WalletType = 'CASH' | 'MOBILE_MONEY' | 'BANK' | 'DEBT';
 
 // Type de fréquence pour les versements automatiques
-export type AutomaticIncomeFrequencyType = 'NOT_SPECIFIED' | 'DAILY' | 'MONTHLY' | 'YEARLY';
+// Both frontend and backend use: NOT_SPECIFIED, DAILY, MENSUAL, YEARLY
+export type AutomaticIncomeFrequencyType = 'NOT_SPECIFIED' | 'DAILY' | 'MENSUAL' | 'YEARLY';
 
 export interface WalletAutomaticIncome {
   amount: number;

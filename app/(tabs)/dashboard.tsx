@@ -172,14 +172,9 @@ export default function DashboardScreen() {
         <Animated.View style={[getAnimStyle(statsAnim)]}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Revenus automatiques</Text>
-              {totalAutomaticIncome > 0 && (
-                <Text style={[styles.automaticIncomeTotal, { color: totalAutomaticIncome >= 0 ? theme.success : theme.error }]}>
-                  {Math.abs(totalAutomaticIncome).toLocaleString('fr-FR')} Ar/mois
-                </Text>
-              )}
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>État de vos portefeuilles</Text>
             </View>
-            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>État de vos portefeuilles</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Accéder au montant dans vos portefeuilles</Text>
           </View>
           
           <View style={styles.statsContainer}>
@@ -196,19 +191,15 @@ export default function DashboardScreen() {
               
               {activeWalletsCount > 0 ? (
                 <View style={styles.walletNamesList}>
-                  {(showAllActiveWallets ? activeWallets : activeWallets.slice(0, 3)).map((wallet) => {
-                    const autoIncome = wallet.walletAutomaticIncome?.type === 'MENSUAL' ? (wallet.walletAutomaticIncome.amount || 0) : 0;
-                    const isPositiveIncome = autoIncome >= 0;
-                    return (
+                  {(showAllActiveWallets ? activeWallets : activeWallets.slice(0, 3)).map((wallet) => (
                       <View key={wallet.id} style={styles.walletNameItem}>
                         <View style={[styles.walletDot, { backgroundColor: theme.success }]} />
                         <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>{wallet.name}</Text>
-                        <Text style={[styles.walletAmount, { color: autoIncome > 0 ? theme.success : theme.textSecondary }]}>
-                          {autoIncome > 0 ? Math.abs(autoIncome).toLocaleString() : (wallet.amount || 0).toLocaleString()} Ar
+                        <Text style={[styles.walletAmount, { color: theme.textSecondary }]}>
+                          {(wallet.amount || 0).toLocaleString()} Ar
                         </Text>
                       </View>
-                    );
-                  })}
+                  ))}
                   {activeWalletsCount > 3 && (
                     <TouchableOpacity onPress={() => setShowAllActiveWallets(!showAllActiveWallets)} style={styles.moreButton}>
                       <Text style={[styles.moreText, { color: theme.primary }]}>
@@ -238,18 +229,15 @@ export default function DashboardScreen() {
               
               {inactiveWalletsCount > 0 ? (
                 <View style={styles.walletNamesList}>
-                  {(showAllInactiveWallets ? inactiveWallets : inactiveWallets.slice(0, 3)).map((wallet) => {
-                    const autoIncome = wallet.walletAutomaticIncome?.type === 'MENSUAL' ? (wallet.walletAutomaticIncome.amount || 0) : 0;
-                    return (
+                  {(showAllInactiveWallets ? inactiveWallets : inactiveWallets.slice(0, 3)).map((wallet) => (
                       <View key={wallet.id} style={styles.walletNameItem}>
                         <View style={[styles.walletDot, { backgroundColor: theme.textTertiary }]} />
                         <Text style={[styles.walletNameText, { color: theme.text }]} numberOfLines={1}>{wallet.name}</Text>
-                        <Text style={[styles.walletAmount, { color: autoIncome > 0 ? theme.success : theme.textSecondary }]}>
-                          {autoIncome > 0 ? Math.abs(autoIncome).toLocaleString() : (wallet.amount || 0).toLocaleString()} Ar
+                        <Text style={[styles.walletAmount, { color: theme.textSecondary }]}>
+                          {(wallet.amount || 0).toLocaleString()} Ar
                         </Text>
                       </View>
-                    );
-                  })}
+                  ))}
                   {inactiveWalletsCount > 3 && (
                     <TouchableOpacity onPress={() => setShowAllInactiveWallets(!showAllInactiveWallets)} style={styles.moreButton}>
                       <Text style={[styles.moreText, { color: theme.primary }]}>

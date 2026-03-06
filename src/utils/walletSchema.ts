@@ -17,7 +17,7 @@ export const walletSchema = z.object({
   iconRef: z.string().min(1, "L'icône est requise").optional(),
   isActive: z.boolean().optional(),
   walletAutomaticIncome: z.object({
-    type: z.enum(['NOT_SPECIFIED', 'DAILY', 'MONTHLY', 'YEARLY']),
+    type: z.enum(['NOT_SPECIFIED', 'DAILY', 'MENSUAL', 'YEARLY']),
     amount: z.union([z.literal(''), z.coerce.number()])
       .optional(),
     paymentDay: z.coerce.number()
@@ -31,7 +31,7 @@ export const walletSchema = z.object({
  * Schéma pour le revenu automatique (versión simplifiée pour兼容性)
  */
 export const automaticIncomeSchema = z.object({
-  type: z.enum(['NOT_SPECIFIED', 'DAILY', 'MONTHLY', 'YEARLY']),
+  type: z.enum(['NOT_SPECIFIED', 'DAILY', 'MENSUAL', 'YEARLY']),
   amount: z.union([z.literal(''), z.coerce.number()])
     .optional(),
   paymentDay: z.coerce.number()

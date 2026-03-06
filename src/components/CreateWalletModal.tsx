@@ -33,12 +33,13 @@ const WALLET_TYPES: { type: WalletType; icon: string; label: string }[] = [
 const PRESET_COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
 
 // Types de fréquence pour les versements automatiques
-type FrequencyType = 'NOT_SPECIFIED' | 'DAILY' | 'MONTHLY' | 'YEARLY';
+// Backend stores: NOT_SPECIFIED, DAILY, MENSUAL, YEARLY
+type FrequencyType = 'NOT_SPECIFIED' | 'DAILY' | 'MENSUAL' | 'YEARLY';
 
 const FREQUENCY_OPTIONS: { type: FrequencyType; label: string; icon: string }[] = [
   { type: 'NOT_SPECIFIED', label: 'Désactivé', icon: 'close-circle' },
   { type: 'DAILY', label: 'Quotidien', icon: 'today' },
-  { type: 'MONTHLY', label: 'Mensuel', icon: 'calendar' },
+  { type: 'MENSUAL', label: 'Mensuel', icon: 'calendar' },
   { type: 'YEARLY', label: 'Annuel', icon: 'calendar-outline' },
 ];
 
@@ -326,11 +327,11 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
                 )}
               />
 
-              {/* Day Input - only for MONTHLY and YEARLY */}
+              {/* Day Input - only for MENSUAL and YEARLY */}
               {selectedFrequency !== 'DAILY' && (
                 <>
                   <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>
-                    Jour du {selectedFrequency === 'MONTHLY' ? 'mois' : 'versement'}
+                    Jour du {selectedFrequency === 'MENSUAL' ? 'mois' : 'versement'}
                   </Text>
                   <Controller
                     control={control}
@@ -340,7 +341,7 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
                         <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
                         <TextInput 
                           style={[styles.input, { color: theme.text }]} 
-                          placeholder={selectedFrequency === 'MONTHLY' ? "Ex: 1" : "Ex: 15"}
+                          placeholder={selectedFrequency === 'MENSUAL' ? "Ex: 1" : "Ex: 15"}
                           placeholderTextColor={theme.textTertiary}
                           value={value?.toString() || '1'} 
                           onChangeText={onChange}
@@ -358,7 +359,7 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
                 <Ionicons name="information-circle" size={20} color={selectedColor || theme.primary} />
                 <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
                   {selectedFrequency === 'DAILY' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté chaque jour`}
-                  {selectedFrequency === 'MONTHLY' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté le jour ${frequencyDay || 1} de chaque mois`}
+                  {selectedFrequency === 'MENSUAL' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté le jour ${frequencyDay || 1} de chaque mois`}
                   {selectedFrequency === 'YEARLY' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté le jour ${frequencyDay || 1} de chaque année`}
                 </Text>
               </View>

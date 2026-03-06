@@ -39,6 +39,7 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
   const router = useRouter();
   const pathname = usePathname();
   const logout = useAuthStore((state) => state.logout);
+  const deleteCompletedAndExpiredGoals = useAuthStore((state) => state.deleteCompletedAndExpiredGoals);
   const [menuOpen, setMenuOpen] = useState(false);
   const { isDarkMode, toggleTheme } = useThemeStore();
   const { show } = useModernAlert();
@@ -55,6 +56,16 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
   };
 
   const handleLogout = async () => {
+    // Delete completed/expired goals before logout
+    try {
+      const deletedCount = await deleteCompletedAndExpiredGoals();
+      if (deletedCount > 0) {
+        console.log(`${deletedCount} objectif(s) atteint(s)/expiré(s) supprimé(s) lors de la déconnexion`);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la suppression des objectifs:', err);
+    }
+    
     await logout();
     setMenuOpen(false);
     router.replace('/(auth)/sign-in');

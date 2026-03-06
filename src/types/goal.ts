@@ -2,13 +2,15 @@ export interface GoalItem {
   id: string;
   name: string;
   amount: number;
-  currentAmount: number; // Souvent calculé par le backend
+  currentAmount: number; // Montant actuel épargnes pour cet objectif
+  isCompleted: boolean; // Whether the goal has been completed
   startingDate: string;
   endingDate: string;
   color: string;
   iconRef: string;
   walletId: string;
   accountId: string;
+  createdAt?: string;
 }
 
 export interface GoalPayload {
@@ -32,14 +34,11 @@ export interface GoalFilters {
   endingDateBeginning?: string;
   endingDateEnding?: string;
   sort?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+  status?: 'in_progress' | 'completed' | 'expired';
 }
 
 export interface GoalResponse {
-  pagination: {
-    totalPage: number;
-    page: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
   values: GoalItem[];
 }

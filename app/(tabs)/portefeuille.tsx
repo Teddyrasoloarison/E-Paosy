@@ -45,7 +45,6 @@ export default function PortefeuilleScreen() {
       <View style={styles.content}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Mes Portefeuilles</Text>
-          <Ionicons name="wallet-outline" size={22} color={theme.primary} />
         </View>
         
         <View style={{ flex: 1 }}>
@@ -74,12 +73,14 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     marginTop: 10,
+    paddingHorizontal: 16,
   },
   accountBadge: { 
     paddingHorizontal: 14, 
     paddingVertical: 8, 
     borderRadius: 10,
     marginBottom: 20,
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -116,7 +117,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: { elevation: 6 },
-      web: { boxShadow: '0px 4px 12px rgba(13, 148, 136, 0.3)' },
     }),
   },
 });

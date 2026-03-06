@@ -25,11 +25,11 @@ export const walletSchema = z.object({
 export const automaticIncomeSchema = z.object({
   // 'MENSUAL' est requis pour que le paymentDay soit pris en compte par le backend
   type: z.enum(['NOT_SPECIFIED', 'MENSUAL']),
-  
-  // On utilise coerce pour transformer les strings des TextInput en nombres
-  amount: z.coerce.number()
-    .min(0, "Le montant doit être positif"),
-  
+
+  // Allow empty string for placeholder display, coerce to number when submitted
+  amount: z.union([z.literal(''), z.coerce.number()])
+    .optional(),
+
   paymentDay: z.coerce.number()
     .min(1, "Le jour doit être au moins 1")
     .max(31, "Le jour ne peut pas dépasser 31"),

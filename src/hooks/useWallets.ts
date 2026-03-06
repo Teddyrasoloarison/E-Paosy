@@ -97,3 +97,14 @@ export const useWallets = () => {
     deleteError: deleteMutation.error,
   };
 };
+
+// Séparé : Hook pour les statistiques d'un wallet
+export const useWalletStatistics = (walletId: string) => {
+  const accountId = useAuthStore((state) => state.accountId);
+  
+  return useQuery({
+    queryKey: ["walletStatistics", accountId, walletId],
+    queryFn: () => walletService.getWalletStatistics(accountId!, walletId),
+    enabled: !!accountId && !!walletId,
+  });
+};

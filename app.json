@@ -7,33 +7,23 @@
     "icon": "./assets/images/logo-e-paosy.png",
     "scheme": "epaosy",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/logo-e-logo-e-paosy-removebg.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
       ],
-      "package": "com.niavo.EPaosy",
-      "statusBar": {
-        "hidden": false
-      },
-      "navigationBar": {
-        "backgroundColor": "transparent",
-        "visible": "sticky-immersive",
-      }
+      "package": "com.niavo.EPaosy"
     },
     "web": {
       "output": "static",
@@ -59,11 +49,25 @@
         {
           "faceIDPermission": "Autoriser E-PAOSY à utiliser Face ID pour la connexion sécurisée."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#E6F4FE",
+          "sounds": []
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ad11e916-94e0-4323-98d6-3c1c9b64dc3a"
+      }
     }
   }
 }

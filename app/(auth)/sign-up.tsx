@@ -1,4 +1,3 @@
-import { labelService } from '@/src/services/labelService';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -72,25 +71,6 @@ export default function SignUpScreen() {
       await authService.signUp({ username, password });
       const response = await authService.signIn({ username, password });
       await setAuth(response.token, response.account.id, response.account.username);
-
-      // creer automatiquement quelques labels par defaut en arriere-plan
-      (async (acctId: string) => {
-        const LABEL_NAMES = ['Frais', 'Loyer', 'Nouriture', 'Ecolage', 'Electricité'];
-        const COLORS = ['#0D9488', '#0EA5E9', '#EF4444', '#F59E0B', '#8B5CF6',
-    '#EC4899', '#06B6D4', '#22C55E', '#A855F7',
-    '#d3a662', '#795548', '#000000', '#e41549'];
-        try {
-          await Promise.all(
-            LABEL_NAMES.map((name) => {
-              const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-              return labelService.createLabel(acctId, { name, color });
-            })
-          );
-        } catch (err) {
-          // pas bloquant, juste log pour debug
-          console.warn('Échec création labels par défaut', err);
-        }
-      })(response.account.id);
 
       // Demander si l'utilisateur souhaite associer son empreinte
       show({

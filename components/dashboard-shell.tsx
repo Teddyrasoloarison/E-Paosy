@@ -23,6 +23,7 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Portefeuille', route: '/(tabs)/portefeuille', icon: 'wallet-outline' },
   { label: 'Transactions', route: '/(tabs)/transaction', icon: 'swap-vertical-outline' },
   { label: 'Objectifs', route: '/(tabs)/objectif', icon: 'trophy-outline' },
+  { label: 'Projets', route: '/(tabs)/projet', icon: 'flag-outline' },
   { label: 'Configuration', route: '/(tabs)/configuration', icon: 'options-outline' },
 ];
 
@@ -213,13 +214,14 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    padding: 20,
+    paddingTop: 20,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
+    paddingHorizontal: 16,
   },
   menuButton: {
     width: 40,

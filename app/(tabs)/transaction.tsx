@@ -36,6 +36,15 @@ export default function TransactionScreen() {
         <TransactionList />
       </View>
 
+      {/* Bouton Calendrier - Positionné au-dessus du bouton de création */}
+      <TouchableOpacity 
+        style={[styles.calendarFab, { backgroundColor: theme.secondary }]} 
+        onPress={() => router.push('/(tabs)/calendar')}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="calendar" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+
       {/* Floating Action Button - Modern Design */}
       <TouchableOpacity 
         style={[styles.fab, { backgroundColor: theme.primary }]} 
@@ -56,7 +65,25 @@ export default function TransactionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 10,
+  },
+  calendarFab: {
+    position: 'absolute',
+    bottom: 100,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#06B6D4',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: { elevation: 6 },
+    }),
   },
   fab: {
     position: 'absolute',
@@ -75,7 +102,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: { elevation: 6 },
-      web: { boxShadow: '0px 4px 12px rgba(13, 148, 136, 0.3)' },
     }),
   },
 });

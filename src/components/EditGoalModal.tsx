@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
-import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors } from '../../constants/colors';
 import { useGoals } from '../hooks/useGoals';
 import { useModernAlert } from '../hooks/useModernAlert';
@@ -17,14 +18,30 @@ interface Props {
   goal: GoalItem;
 }
 
-const PRESET_COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F', '#2563EB', '#059669'];
-const PRESET_ICONS = ['cart', 'airplane', 'car', 'home', 'gift', 'school', 'phone-portrait', 'fitness'];
+const PRESET_COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
+const PRESET_ICONS = [
+  'home',
+  'school',
+  'car-sport',
+  'beer',
+  'airplane',
+  'gift',
+  'hammer',
+  'fitness',
+  'cart',
+  'paw',
+  'phone-portrait',
+  'pizza',
+];
 
 export default function EditGoalModal({ visible, onClose, goal }: Props) {
   const { updateGoal, isUpdating } = useGoals();
   const { wallets } = useWallets();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema) as any,
@@ -76,11 +93,19 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <View style={[styles.content, { backgroundColor: theme.surface }]}>
           <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
           
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
             <View style={styles.header}>
               <View style={[styles.titleRow, { backgroundColor: (selectedColor || theme.primary) + '15' }]}>
                 <Ionicons name="flag" size={24} color={selectedColor || theme.primary} />
@@ -155,6 +180,59 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
             </ScrollView>
             {errors.walletId && <Text style={[styles.error, { color: theme.error }]}>{errors.walletId.message}</Text>}
 
+            {/* Dates */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Dates</Text>
+            
+            {/* Starting Date */}
+            <Text style={[styles.customLabel, { color: theme.textTertiary }]}>Date de début</Text>
+            <TouchableOpacity 
+              style={[styles.inputContainer, { backgroundColor: theme.background }]}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
+              <Text style={[styles.input, { color: theme.text }]}>
+                {watch('startingDate') ? new Date(watch('startingDate')).toLocaleDateString('fr-FR') : 'Sélectionner une date'}
+              </Text>
+            </TouchableOpacity>
+            {showStartDatePicker && (
+              <DateTimePicker
+                value={new Date(watch('startingDate') || new Date())}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, date) => {
+                  setShowStartDatePicker(Platform.OS === 'ios');
+                  if (date) {
+                    setValue('startingDate', date.toISOString(), { shouldValidate: true });
+                  }
+                }}
+              />
+            )}
+
+            {/* Ending Date */}
+            <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>Date de fin</Text>
+            <TouchableOpacity 
+              style={[styles.inputContainer, { backgroundColor: theme.background }]}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
+              <Text style={[styles.input, { color: theme.text }]}>
+                {watch('endingDate') ? new Date(watch('endingDate')).toLocaleDateString('fr-FR') : 'Sélectionner une date'}
+              </Text>
+            </TouchableOpacity>
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={new Date(watch('endingDate') || new Date())}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, date) => {
+                  setShowEndDatePicker(Platform.OS === 'ios');
+                  if (date) {
+                    setValue('endingDate', date.toISOString(), { shouldValidate: true });
+                  }
+                }}
+              />
+            )}
+
             {/* Customization */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Personnalisation</Text>
             
@@ -227,13 +305,13 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   content: { 
     borderTopLeftRadius: 25, 
     borderTopRightRadius: 25, 
@@ -244,6 +322,7 @@ const styles = StyleSheet.create({
       android: { elevation: 10 },
     }),
   },
+  scrollContent: { flexGrow: 1, paddingBottom: 20 },
   handleBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
   titleRow: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },

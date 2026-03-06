@@ -20,6 +20,7 @@ export interface Wallet {
   walletAutomaticIncome?: WalletAutomaticIncome;
   color?: string;
   iconRef?: string;
+  createdAt?: string;
 }
 
 export interface CreateWalletDto {
@@ -55,4 +56,14 @@ export interface WalletResponse {
     hasPrev?: boolean;
   };
   values: Wallet[];
+}
+
+export interface WalletStatistics {
+  wallet?: Wallet;
+  totalIncome: number;
+  totalExpense: number;
+  currentBalance: number;
+  transactionCount: number;
+  incomeCount: number;
+  expenseCount: number;
 }

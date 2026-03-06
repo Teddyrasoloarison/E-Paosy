@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useLabels } from '../hooks/useLabels';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { LabelItem, LabelPayload } from '../types/label';
-import { LabelFormData, labelSchema } from '../utils/labelSchema';
+import { LabelFormData, labelSchema, LABEL_ICONS, LABEL_COLORS } from '../utils/labelSchema';
 
 interface Props {
     visible: boolean;
@@ -17,40 +17,32 @@ interface Props {
     label: LabelItem;
 }
 
-const COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F', '#2563EB', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#4F46E5'];
-
 export default function EditLabelModal({ visible, onClose, label }: Props) {
     const { updateLabel, isUpdating } = useLabels();
     const accountId = useAuthStore((state) => state.accountId);
     const isDarkMode = useThemeStore((state) => state.isDarkMode);
     const theme = isDarkMode ? Colors.dark : Colors.light;
     
-    // State to track the initial color from the label prop
-    const [initialColor, setInitialColor] = useState(label.color);
-
-    // Update initial color when label changes
-    useEffect(() => {
-        setInitialColor(label.color);
-    }, [label.id, label.color]);
+    const [showIconPicker, setShowIconPicker] = useState(false);
 
     const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<LabelFormData>({
         resolver: zodResolver(labelSchema),
         defaultValues: {
             name: label.name,
             color: label.color,
+            iconRef: label.iconRef || 'pricetag',
         }
     });
 
     useEffect(() => {
         if (visible) {
-            // Reset form with the label's current color when modal opens
-            setInitialColor(label.color);
             reset({
                 name: label.name,
                 color: label.color,
+                iconRef: label.iconRef || 'pricetag',
             });
         }
-    }, [visible, label.id, label.name, label.color, reset]);
+    }, [visible, label.id, label.name, label.color, label.iconRef, reset]);
 
     // Handle hardware back button on Android
     useEffect(() => {
@@ -65,6 +57,7 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
     }, [visible, onClose]);
 
     const selectedColor = watch('color');
+    const selectedIcon = watch('iconRef') || 'pricetag';
     const labelName = watch('name');
 
     // alert helpers must be obtained at top level of component
@@ -74,6 +67,7 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
         const payload: LabelPayload = {
             name: data.name,
             color: data.color,
+            iconRef: data.iconRef || 'pricetag',
             accountId: accountId!
         };
 
@@ -94,15 +88,28 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
         );
     };
 
+    const handleIconSelect = (icon: string) => {
+        setValue('iconRef', icon);
+        setShowIconPicker(false);
+    };
+
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-            <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.overlay}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
                 <View style={[styles.content, { backgroundColor: theme.surface }]}>
                     <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
-                    <ScrollView showsVerticalScrollIndicator={false}>
+                    <ScrollView 
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        contentContainerStyle={styles.scrollContent}
+                    >
                     <View style={styles.header}>
                         <View style={[styles.titleIcon, { backgroundColor: selectedColor + '15' }]}>
-                            <Ionicons name="pricetag" size={24} color={selectedColor} />
+                            <Ionicons name={(selectedIcon as any) || 'pricetag'} size={24} color={selectedColor} />
                         </View>
                         <View style={styles.titleContent}>
                             <Text style={[styles.title, { color: theme.text }]}>Modifier le Label</Text>
@@ -133,10 +140,52 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
                     />
                     {errors.name && <Text style={[styles.errorText, { color: theme.error }]}>{errors.name.message}</Text>}
 
+                    {/* Icon Selector */}
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Icône</Text>
+                    <TouchableOpacity
+                        style={[styles.iconSelector, { backgroundColor: theme.background, borderColor: theme.border }]}
+                        onPress={() => setShowIconPicker(!showIconPicker)}
+                    >
+                        <View style={[styles.selectedIconPreview, { backgroundColor: selectedColor + '20' }]}>
+                            <Ionicons name={(selectedIcon as any) || 'pricetag'} size={24} color={selectedColor} />
+                        </View>
+                        <Text style={[styles.iconSelectorText, { color: theme.text }]}>
+                            {selectedIcon || 'Sélectionner une icône'}
+                        </Text>
+                        <Ionicons name={showIconPicker ? 'chevron-up' : 'chevron-down'} size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+
+                    {/* Icon Picker */}
+                    {showIconPicker && (
+                        <View style={[styles.iconPicker, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                <View style={styles.iconGrid}>
+                                    {LABEL_ICONS.map((icon) => (
+                                        <TouchableOpacity
+                                            key={icon}
+                                            style={[
+                                                styles.iconOption,
+                                                selectedIcon === icon && { backgroundColor: selectedColor + '30' },
+                                                selectedIcon === icon && { borderColor: selectedColor }
+                                            ]}
+                                            onPress={() => handleIconSelect(icon)}
+                                        >
+                                            <Ionicons
+                                                name={icon as any}
+                                                size={22}
+                                                color={selectedIcon === icon ? selectedColor : theme.textSecondary}
+                                            />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </ScrollView>
+                        </View>
+                    )}
+
                     {/* Color Selector */}
                     <Text style={[styles.label, { color: theme.textSecondary }]}>Couleur</Text>
                     <View style={styles.colorGrid}>
-                        {COLORS.map((c) => (
+                        {LABEL_COLORS.map((c) => (
                             <TouchableOpacity
                                 key={c}
                                 style={[
@@ -156,7 +205,7 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
                     {/* Preview */}
                     <View style={[styles.previewCard, { backgroundColor: selectedColor + '15', borderColor: selectedColor }]}>
                         <View style={[styles.previewIcon, { backgroundColor: selectedColor }]}>
-                            <Ionicons name="pricetag" size={20} color="#fff" />
+                            <Ionicons name={(selectedIcon as any) || 'pricetag'} size={20} color="#fff" />
                         </View>
                         <View style={styles.previewContent}>
                             <Text style={[styles.previewText, { color: theme.text }]}>
@@ -185,23 +234,24 @@ export default function EditLabelModal({ visible, onClose, label }: Props) {
                     </TouchableOpacity>
                     </ScrollView>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, justifyContent: 'flex-end' },
+    overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
     content: { 
         borderTopLeftRadius: 25, 
         borderTopRightRadius: 25, 
         padding: 20, 
-        maxHeight: '75%',
+        maxHeight: '85%',
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 12 },
             android: { elevation: 10 },
         }),
     },
+    scrollContent: { flexGrow: 1, paddingBottom: 20 },
     handleBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
     header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 12 },
     titleIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
@@ -212,14 +262,24 @@ const styles = StyleSheet.create({
     inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, gap: 10 },
     input: { flex: 1, fontSize: 16 },
     errorText: { fontSize: 12, marginTop: 4 },
+    // Icon selector styles
+    iconSelector: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1, gap: 12 },
+    selectedIconPreview: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+    iconSelectorText: { flex: 1, fontSize: 16 },
+    iconPicker: { marginTop: 10, padding: 10, borderRadius: 12, borderWidth: 1 },
+    iconGrid: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
+    iconOption: { width: 44, height: 44, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
+    // Color selector styles
     colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
     colorOption: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     colorSelected: { borderWidth: 3, borderColor: '#fff' },
+    // Preview styles
     previewCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 20, gap: 12 },
     previewIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
     previewContent: { flex: 1 },
     previewText: { fontSize: 15, fontWeight: '600' },
     previewSubtext: { fontSize: 12, marginTop: 2 },
+    // Submit button styles
     submitBtn: { padding: 18, borderRadius: 14, marginTop: 24, alignItems: 'center' },
     submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' }

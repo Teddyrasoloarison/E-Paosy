@@ -9,8 +9,28 @@ export const useGoals = (filters?: GoalFilters) => {
 
   const query = useQuery({
     queryKey: ['goals', accountId, filters],
-    queryFn: () => goalService.getGoals(accountId!, filters),
+    queryFn: async () => {
+      if (!accountId) {
+        return { values: [] };
+      }
+      const result = await goalService.getGoals(accountId, filters);
+      
+      // Handle case where API returns array directly
+      if (Array.isArray(result)) {
+        return { values: result };
+      }
+      
+      if (!result || typeof result !== 'object') {
+        return { values: [] };
+      }
+      
+      return {
+        values: result.values || [],
+      };
+    },
     enabled: !!accountId,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const createMutation = useMutation({
@@ -29,12 +49,24 @@ export const useGoals = (filters?: GoalFilters) => {
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: ({ walletId, goalId }: { walletId: string; goalId: string }) =>
+      goalService.archiveGoal(accountId!, walletId, goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals', accountId] });
+    },
+  });
+
   return {
     ...query,
     goals: query.data?.values || [],
+    totalGoals: query.data?.values?.length || 0,
     createGoal: createMutation.mutate,
     updateGoal: updateMutation.mutate,
+    archiveGoal: archiveMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
+    isArchiving: archiveMutation.isPending,
   };
 };
+

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, BackHandler, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useWallets } from '../hooks/useWallets';
@@ -31,7 +31,7 @@ const WALLET_TYPES: { type: WalletType; icon: string; label: string }[] = [
   { type: 'DEBT', icon: 'person-remove', label: 'Dette' },
 ];
 
-const PRESET_COLORS = ['#0D9488', '#1565C0', '#C62828', '#F9A825', '#6A1B9A', '#37474F', '#2563EB', '#059669'];
+const PRESET_COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
 
 export default function EditWalletModal({ visible, onClose, wallet }: Props) {
   const { updateWallet, isUpdating } = useWallets();
@@ -118,10 +118,18 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
         <View style={[styles.content, { backgroundColor: theme.surface }]}>
           <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
             <View style={styles.header}>
               <View style={[styles.titleIcon, { backgroundColor: (selectedColor || theme.primary) + '15' }]}>
                 <Ionicons name="create" size={24} color={selectedColor || theme.primary} />
@@ -292,13 +300,13 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   content: { 
     borderTopLeftRadius: 25, 
     borderTopRightRadius: 25, 
@@ -309,6 +317,7 @@ const styles = StyleSheet.create({
       android: { elevation: 10 },
     }),
   },
+  scrollContent: { flexGrow: 1, paddingBottom: 20 },
   handleBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 12 },
   titleIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },

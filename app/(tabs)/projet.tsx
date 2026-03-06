@@ -5,13 +5,13 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { BackHandler, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
-import CreateGoalModal from '../../src/components/CreateGoalModal';
-import GoalList from '../../src/components/GoalList';
+import CreateProjectModal from '../../src/components/CreateProjectModal';
+import ProjectList from '../../src/components/ProjectList';
 import { useThemeStore } from '../../src/store/useThemeStore';
 
-export default function ObjectifScreen() {
+export default function ProjetScreen() {
   const router = useRouter();
-  const [isCreateVisible, setCreateVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -31,24 +31,26 @@ export default function ObjectifScreen() {
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   return (
-    <DashboardShell title="Objectifs" subtitle="Suivez vos objectifs financiers" icon="trophy-outline">
+    <DashboardShell title="Projets" subtitle="Gérez vos projets" icon="flag-outline">
       
       <View style={styles.container}>
-        <GoalList />
+        <View style={{ flex: 1 }}>
+          <ProjectList />
+        </View>
       </View>
 
       {/* FAB */}
       <TouchableOpacity 
         style={[styles.fab, { backgroundColor: theme.primary }]} 
-        onPress={() => setCreateVisible(true)}
+        onPress={() => setIsModalVisible(true)}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
-      <CreateGoalModal 
-        visible={isCreateVisible} 
-        onClose={() => setCreateVisible(false)} 
+      <CreateProjectModal 
+        visible={isModalVisible} 
+        onClose={() => setIsModalVisible(false)} 
       />
     </DashboardShell>
   );
@@ -57,6 +59,8 @@ export default function ObjectifScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    marginTop: 10,
+    paddingHorizontal: 16,
   },
   fab: {
     position: 'absolute',
@@ -78,3 +82,4 @@ const styles = StyleSheet.create({
     }),
   },
 });
+

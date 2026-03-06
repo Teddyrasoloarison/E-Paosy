@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import ConfirmModal from './ConfirmModal';
-import { useWallets } from '../hooks/useWallets';
+import { useWallets, useWalletStatistics } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
 import { Wallet } from '../types/wallet';
 import EditAutomaticIncomeModal from './EditAutomaticIncomeModal';
@@ -17,10 +17,100 @@ const WALLET_TYPE_ICONS: Record<string, string> = {
   'DEBT': 'person-remove',
 };
 
+// Modal pour afficher les statistiques
+function WalletStatisticsModal({ 
+  visible, 
+  onClose, 
+  wallet 
+}: { 
+  visible: boolean; 
+  onClose: () => void; 
+  wallet: Wallet | null;
+}) {
+  const isDarkMode = useThemeStore((state) => state.isDarkMode);
+  const theme = isDarkMode ? Colors.dark : Colors.light;
+  
+  const { data: statistics, isLoading } = useWalletStatistics(wallet?.id || '');
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+        <View style={[styles.statsContent, { backgroundColor: theme.surface }]}>
+          <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
+          
+          <View style={styles.statsHeader}>
+            <View style={[styles.statsIcon, { backgroundColor: (wallet?.color || theme.primary) + '20' }]}>
+              <Ionicons name="stats-chart" size={24} color={wallet?.color || theme.primary} />
+            </View>
+            <View style={styles.statsTitleContent}>
+              <Text style={[styles.statsTitle, { color: theme.text }]}>Statistiques</Text>
+              <Text style={[styles.statsSubtitle, { color: theme.textSecondary }]}>
+                {wallet?.name}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close-circle" size={28} color={theme.textTertiary} />
+            </TouchableOpacity>
+          </View>
+
+          {isLoading ? (
+            <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />
+          ) : (
+            <View style={styles.statsGrid}>
+              {/* Solde actuel */}
+              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Ionicons name="wallet" size={24} color={theme.primary} />
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Solde actuel</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>
+                  {(statistics?.currentBalance ?? 0).toLocaleString()} Ar
+                </Text>
+              </View>
+
+              {/* Nombre de transactions */}
+              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Ionicons name="receipt" size={24} color={theme.primary} />
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Transactions</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>
+                  {statistics?.transactionCount ?? 0}
+                </Text>
+              </View>
+
+              {/* Total des revenus */}
+              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Ionicons name="arrow-down-circle" size={24} color={theme.success} />
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Total revenus</Text>
+                <Text style={[styles.statValue, { color: theme.success }]}>
+                  {(statistics?.totalIncome ?? 0).toLocaleString()} Ar
+                </Text>
+              </View>
+
+              {/* Total des dépenses */}
+              <View style={[styles.statCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Ionicons name="arrow-up-circle" size={24} color={theme.error} />
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Total dépenses</Text>
+                <Text style={[styles.statValue, { color: theme.error }]}>
+                  {(statistics?.totalExpense ?? 0).toLocaleString()} Ar
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity 
+            style={[styles.closeBtn, { backgroundColor: theme.primary }]} 
+            onPress={onClose}
+          >
+            <Text style={styles.closeBtnText}>Fermer</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function WalletList() {
   const { data, isLoading, error, deleteWallet } = useWallets();
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
-  const [modalType, setModalType] = useState<'edit' | 'income' | null>(null);
+  const [modalType, setModalType] = useState<'edit' | 'income' | 'statistics' | null>(null);
   const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
@@ -31,10 +121,10 @@ export default function WalletList() {
     return data.values.find(w => w.id === selectedWalletId) || null;
   }, [selectedWalletId, data?.values]);
 
-  // Clic sur le wallet -> Ouvre EditWalletModal
+  // Clic sur le wallet -> Ouvre EditAutomaticIncomeModal
   const handleWalletPress = useCallback((wallet: Wallet) => {
     setSelectedWalletId(wallet.id);
-    setModalType('edit');
+    setModalType('income');
   }, []);
 
   // Bouton pour aller vers AutomaticIncome
@@ -70,10 +160,17 @@ export default function WalletList() {
     setModalType(null);
   }, []);
 
-  // Sort wallets by creation date (newest first - based on id)
+  // Sort wallets by creation date (newest first)
   const sortedWallets = useMemo(() => {
     if (!data?.values) return [];
-    return [...data.values].sort((a, b) => b.id.localeCompare(a.id));
+    return [...data.values].sort((a, b) => {
+      // If createdAt exists, use it for sorting (newest first)
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      // Fallback: use id for sorting (newest first based on UUID)
+      return b.id.localeCompare(a.id);
+    });
   }, [data?.values]);
 
   if (isLoading) {
@@ -161,20 +258,39 @@ export default function WalletList() {
               </View>
 
               <View style={styles.balanceContainer}>
-                <View style={styles.actionButtons}>
-                  {/* Bouton pour revenu automatique */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.success + '20' }]}
-                    onPress={() => handleAutomaticIncome(item)}
-                  >
-                    <Ionicons name="settings-outline" size={16} color={theme.success} />
-                  </TouchableOpacity>
+                <View style={styles.topActionButtons}>
                   {/* Bouton pour supprimer */}
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.error + '20' }]}
                     onPress={() => handleDeleteWallet(item)}
                   >
-                    <Ionicons name="trash-outline" size={16} color={theme.error} />
+                    <Ionicons name="trash" size={16} color={theme.error} />
+                  </TouchableOpacity>
+                  {/* Bouton pour revenu automatique */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.success + '20' }]}
+                    onPress={() => handleAutomaticIncome(item)}
+                  >
+                    <Ionicons name="settings" size={16} color={theme.success} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.bottomActionButtons}>
+                  {/* Bouton pour modifier le portefeuille */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
+                    onPress={() => handleEditWallet(item)}
+                  >
+                    <Ionicons name="pencil" size={16} color={theme.primary} />
+                  </TouchableOpacity>
+                  {/* Bouton pour voir les statistiques */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.info + '20' }]}
+                    onPress={() => {
+                      setSelectedWalletId(item.id);
+                      setModalType('statistics');
+                    }}
+                  >
+                    <Ionicons name="stats-chart" size={16} color={theme.info} />
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.balance, { color: walletColor }]}>
@@ -210,6 +326,15 @@ export default function WalletList() {
 
       {selectedWallet && modalType === 'edit' && (
         <EditWalletModal
+          visible={true}
+          onClose={handleCloseModal}
+          wallet={selectedWallet}
+        />
+      )}
+
+      {/* Statistics Modal */}
+      {selectedWallet && modalType === 'statistics' && (
+        <WalletStatisticsModal
           visible={true}
           onClose={handleCloseModal}
           wallet={selectedWallet}
@@ -289,6 +414,7 @@ const styles = StyleSheet.create({
   balance: { 
     fontSize: 17, 
     fontWeight: '800',
+    paddingTop: 5,
   },
   inactiveTag: { 
     fontSize: 11, 
@@ -335,7 +461,16 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
+  },
+  topActionButtons: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 8,
+  },
+  bottomActionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
   },
   actionButton: {
     width: 32,
@@ -343,5 +478,83 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: -5,
+  },
+  // Styles pour le modal des statistiques
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  statsContent: {
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 12,
+  },
+  statsIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsTitleContent: {
+    flex: 1,
+  },
+  statsTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  statsSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    width: '48%',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  closeBtn: {
+    padding: 16,
+    borderRadius: 14,
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  closeBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

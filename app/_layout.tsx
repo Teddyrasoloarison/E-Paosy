@@ -9,7 +9,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ModernAlertProvider } from '@/src/components/ModernAlert';
 import { useInactivity } from '@/hooks/useInactivity';
 import { useGoalNotifications } from '@/src/hooks/useGoalNotifications';
-import { getModernAlertHandler } from '@/src/components/ModernAlert';
+import { useGoals } from '@/src/hooks/useGoals';
+import { notificationService } from '@/src/services/notificationService';
+import { GoalItem } from '@/src/types/goal';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,15 +28,38 @@ export const unstable_settings = {
 
 function AppContent() {
   const { resetTimer } = useInactivity();
+  const { goals } = useGoals();
 
-  useGoalNotifications((notification) => {
-    const alertHandler = getModernAlertHandler();
-    if (alertHandler) {
-      alertHandler.show({
-        title: notification.title,
-        message: notification.message,
-        type: notification.type === 'completed' ? 'success' : 'warning',
-      });
+  useGoalNotifications(async (notification) => {
+    // Find the goal from the goals array to get accurate data
+    const goal = goals.find((g: GoalItem) => g.id === notification.goalId);
+    
+    // Use push notification for goal notifications
+    if (notification.type === 'completed' && goal) {
+      // For completed goals, use the notification service
+      await notificationService.sendGoalCompletedNotification(
+        notification.goalId,
+        goal.name,
+        goal.amount,
+        goal.currentAmount || 0
+      );
+    } else if (notification.type === 'deadline' && goal) {
+      // Calculate days remaining
+      const now = new Date();
+      const endingDate = new Date(goal.endingDate);
+      const daysRemaining = Math.ceil((endingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      await notificationService.sendGoalDeadlineNotification(
+        notification.goalId,
+        goal.name,
+        daysRemaining,
+        goal.amount
+      );
+    } else if (notification.type === 'expired' && goal) {
+      await notificationService.sendGoalExpiredNotification(
+        notification.goalId,
+        goal.name
+      );
     }
   });
 

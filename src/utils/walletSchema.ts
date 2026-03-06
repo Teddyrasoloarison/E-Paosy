@@ -16,20 +16,24 @@ export const walletSchema = z.object({
   color: z.string().startsWith("#", "Couleur invalide").optional(),
   iconRef: z.string().min(1, "L'icône est requise").optional(),
   isActive: z.boolean().optional(),
+  walletAutomaticIncome: z.object({
+    type: z.enum(['NOT_SPECIFIED', 'DAILY', 'MENSUAL', 'YEARLY']),
+    amount: z.union([z.literal(''), z.coerce.number()])
+      .optional(),
+    paymentDay: z.coerce.number()
+      .min(1, "Le jour doit être au moins 1")
+      .max(31, "Le jour ne peut pas dépasser 31")
+      .optional(),
+  }).optional(),
 });
 
 /**
- * Schéma pour le revenu automatique
- * (PUT /account/{id}/wallet/{id}/automaticIncome)
+ * Schéma pour le revenu automatique (versión simplifiée pour兼容性)
  */
 export const automaticIncomeSchema = z.object({
-  // 'MENSUAL' est requis pour que le paymentDay soit pris en compte par le backend
-  type: z.enum(['NOT_SPECIFIED', 'MENSUAL']),
-
-  // Allow empty string for placeholder display, coerce to number when submitted
+  type: z.enum(['NOT_SPECIFIED', 'DAILY', 'MENSUAL', 'YEARLY']),
   amount: z.union([z.literal(''), z.coerce.number()])
     .optional(),
-
   paymentDay: z.coerce.number()
     .min(1, "Le jour doit être au moins 1")
     .max(31, "Le jour ne peut pas dépasser 31"),

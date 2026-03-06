@@ -1,12 +1,13 @@
 export type WalletType = 'CASH' | 'MOBILE_MONEY' | 'BANK' | 'DEBT';
 
-// ✅ Correction : L'API n'accepte que ces deux valeurs pour l'income
-export type AutomaticIncomeType = 'NOT_SPECIFIED' | 'MENSUAL';
+// Type de fréquence pour les versements automatiques
+// Both frontend and backend use: NOT_SPECIFIED, DAILY, MENSUAL, YEARLY
+export type AutomaticIncomeFrequencyType = 'NOT_SPECIFIED' | 'DAILY' | 'MENSUAL' | 'YEARLY';
 
 export interface WalletAutomaticIncome {
   amount: number;
   paymentDay: number;
-  type: AutomaticIncomeType; 
+  type: AutomaticIncomeFrequencyType;
 }
 
 export interface Wallet {
@@ -29,6 +30,7 @@ export interface CreateWalletDto {
   type: WalletType;
   color?: string;
   iconRef?: string;
+  walletAutomaticIncome?: WalletAutomaticIncome;
 }
 
 export interface UpdateWalletDto {
@@ -38,15 +40,15 @@ export interface UpdateWalletDto {
   color?: string;
   iconRef?: string;
   isActive?: boolean;
+  walletAutomaticIncome?: WalletAutomaticIncome;
 }
 
-// ✅ Doit être identique à WalletAutomaticIncome pour le PUT
-// ✅ À corriger comme ceci :
+// DTO pour les versements automatiques
 export interface UpdateAutomaticIncomeDto {
   amount: number;
   paymentDay: number;
-  type: AutomaticIncomeType;           // On garde le type ici
-  haveAutomaticIncome?: boolean;       // On ajoute la propriété sur sa propre ligne
+  type: AutomaticIncomeFrequencyType;
+  haveAutomaticIncome?: boolean;
 }
 export interface WalletResponse {
   pagination: {

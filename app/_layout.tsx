@@ -1,8 +1,9 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -12,6 +13,8 @@ import { useGoalNotifications } from '@/src/hooks/useGoalNotifications';
 import { useGoals } from '@/src/hooks/useGoals';
 import { notificationService } from '@/src/services/notificationService';
 import { GoalItem } from '@/src/types/goal';
+import { useAuthStore } from '@/src/store/useAuthStore';
+import { useEffect } from 'react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +32,36 @@ export const unstable_settings = {
 function AppContent() {
   const { resetTimer } = useInactivity();
   const { goals } = useGoals();
+  const router = useRouter();
+  const accountId = useAuthStore((state) => state.accountId);
+
+  // Schedule daily expense notification when user is logged in
+  useEffect(() => {
+    if (accountId) {
+      notificationService.scheduleDailyExpenseNotification(accountId);
+    }
+  }, [accountId]);
+
+  // Gérer le clic sur les notifications d'objectifs
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const notificationData = response.notification.request.content.data;
+      
+      // Vérifier si c'est une notification d'objectif
+      if (notificationData && notificationData.type) {
+        const notificationType = notificationData.type as string;
+        
+        // Types d'objectifs : 'completed', 'deadline', 'expired'
+        if (notificationType === 'completed' || notificationType === 'deadline' || notificationType === 'expired') {
+          router.push('/(tabs)/objectif');
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
 
   useGoalNotifications(async (notification) => {
     // Find the goal from the goals array to get accurate data

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
+// Dynamic import used to break circular dependency: api.ts -> useAuthStore.ts -> goalService.ts -> api.ts
 
 interface AuthState {
   token: string | null;
@@ -9,6 +10,10 @@ interface AuthState {
   setAuth: (token: string, accountId: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
   loadStorage: () => Promise<void>;
+  deleteCompletedAndExpiredGoals: () => Promise<number>;
+  setGoalsDeletedFlag: (deleted: boolean) => Promise<void>;
+  getGoalsDeletedFlag: () => Promise<boolean>;
+  clearGoalsDeletedFlag: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -38,5 +43,68 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (token && accountId) {
       set({ token, accountId, username: username ?? 'Utilisateur', isAuthenticated: true });
     }
+  },
+
+  deleteCompletedAndExpiredGoals: async () => {
+    const accountId = useAuthStore.getState().accountId;
+    if (!accountId) {
+      return 0;
+    }
+
+    try {
+      // Dynamic import to break circular dependency cycle
+      const { goalService } = await import('../services/goalService');
+      
+      // Get all goals
+      const result = await goalService.getGoals(accountId);
+      const goals = result.values || [];
+      const now = new Date();
+
+      // Filter completed or expired goals
+      const goalsToDelete = goals.filter((goal: { isCompleted: boolean; endingDate: string; id: string; walletId: string; name: string }) => {
+        const isCompleted = goal.isCompleted === true;
+        const isExpired = new Date(goal.endingDate) < now;
+        return isCompleted || isExpired;
+      });
+
+      // Delete each goal
+      let deletedCount = 0;
+      for (const goal of goalsToDelete) {
+        try {
+          await goalService.deleteGoal(accountId, goal.walletId, goal.id);
+          deletedCount++;
+          console.log(`Objectif "${goal.name}" supprimé automatiquement`);
+        } catch (err) {
+          console.error(`Erreur suppression objectif ${goal.name}:`, err);
+        }
+      }
+
+      // Set flag if any goals were deleted
+      if (deletedCount > 0) {
+        await SecureStore.setItemAsync('goalsDeleted', 'true');
+      }
+
+      return deletedCount;
+    } catch (err) {
+      console.error('Erreur lors de la suppression des objectifs:', err);
+      return 0;
+    }
+  },
+
+  setGoalsDeletedFlag: async (deleted: boolean) => {
+    if (deleted) {
+      await SecureStore.setItemAsync('goalsDeleted', 'true');
+    } else {
+      await SecureStore.deleteItemAsync('goalsDeleted');
+    }
+  },
+
+  getGoalsDeletedFlag: async () => {
+    const value = await SecureStore.getItemAsync('goalsDeleted');
+    return value === 'true';
+  },
+
+  clearGoalsDeletedFlag: async () => {
+    await SecureStore.deleteItemAsync('goalsDeleted');
   }
 }));

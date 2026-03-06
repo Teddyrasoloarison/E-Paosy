@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
-import { Wallet, WalletType } from '../types/wallet';
+import { AutomaticIncomeFrequencyType, Wallet, WalletType } from '../types/wallet';
 import { WalletFormData, walletSchema } from '../utils/walletSchema';
 
 interface Props {
@@ -33,6 +33,17 @@ const WALLET_TYPES: { type: WalletType; icon: string; label: string }[] = [
 
 const PRESET_COLORS = ['#0D9488', '#2878d3', '#C62828', '#F9A825', '#6A1B9A', '#ff7b00', '#092d7a', '#06553c'];
 
+// Types de fréquence pour les versements automatiques
+// Backend stores: NOT_SPECIFIED, DAILY, MENSUAL, YEARLY
+type FrequencyType = 'NOT_SPECIFIED' | 'DAILY' | 'MENSUAL' | 'YEARLY';
+
+const FREQUENCY_OPTIONS: { type: FrequencyType; label: string; icon: string }[] = [
+  { type: 'NOT_SPECIFIED', label: 'Désactivé', icon: 'close-circle' },
+  { type: 'DAILY', label: 'Quotidien', icon: 'today' },
+  { type: 'MENSUAL', label: 'Mensuel', icon: 'calendar' },
+  { type: 'YEARLY', label: 'Annuel', icon: 'calendar-outline' },
+];
+
 export default function EditWalletModal({ visible, onClose, wallet }: Props) {
   const { updateWallet, isUpdating } = useWallets();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
@@ -41,6 +52,11 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
 
   // Déterminer la couleur par défaut du wallet
   const defaultColor = wallet.color || PRESET_COLORS[0];
+  
+  // État pour la fréquence de versement automatique
+  const [selectedFrequency, setSelectedFrequency] = useState<FrequencyType>(
+    wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED'
+  );
 
   const { 
     control, 
@@ -49,15 +65,20 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
     watch, 
     setValue, 
     formState: { errors } 
-  } = useForm<WalletFormData>({
-    resolver: zodResolver(walletSchema),
+  } = useForm({
+    resolver: zodResolver(walletSchema) as any,
     defaultValues: {
       name: wallet.name,
       description: wallet.description || '',
       type: wallet.type,
       color: defaultColor,
       iconRef: WALLET_TYPE_ICONS[wallet.type] || 'wallet',
-      isActive: wallet.isActive
+      isActive: wallet.isActive,
+      walletAutomaticIncome: {
+        type: wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED',
+        amount: wallet.walletAutomaticIncome?.amount || 0,
+        paymentDay: wallet.walletAutomaticIncome?.paymentDay || 1,
+      }
     }
   });
 
@@ -82,28 +103,54 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
         type: wallet.type,
         color: wallet.color || PRESET_COLORS[0],
         iconRef: WALLET_TYPE_ICONS[wallet.type] || 'wallet',
-        isActive: wallet.isActive
+        isActive: wallet.isActive,
+        walletAutomaticIncome: {
+          type: wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED',
+          amount: wallet.walletAutomaticIncome?.amount || 0,
+          paymentDay: wallet.walletAutomaticIncome?.paymentDay || 1,
+        }
       });
+      setSelectedFrequency(wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED');
     }
   }, [visible, wallet, reset]);
 
-  const selectedType = watch('type');
+  const selectedType = watch('type') as WalletType;
   const walletName = watch('name');
   const selectedColor = watch('color');
   const isActive = watch('isActive');
+  const frequencyAmount = watch('walletAutomaticIncome.amount');
+  const frequencyDay = watch('walletAutomaticIncome.paymentDay');
 
   // Obtenir l'icône automatiquement basée sur le type
   const currentIcon = WALLET_TYPE_ICONS[selectedType] || 'wallet';
 
-  const onSubmit = (data: WalletFormData) => {
+  const handleFrequencyChange = (freq: FrequencyType) => {
+    setSelectedFrequency(freq);
+    setValue('walletAutomaticIncome.type', freq);
+  };
+
+  const onSubmit = (data: any) => {
     // Assigner automatiquement l'icône basée sur le type
-    const dataWithIcon = {
-      ...data,
-      iconRef: WALLET_TYPE_ICONS[data.type] || 'wallet'
+    const walletData = {
+      name: data.name,
+      description: data.description,
+      type: data.type as WalletType,
+      color: data.color,
+      iconRef: WALLET_TYPE_ICONS[data.type as WalletType] || 'wallet',
+      isActive: data.isActive,
+      walletAutomaticIncome: selectedFrequency !== 'NOT_SPECIFIED' ? {
+        type: selectedFrequency as AutomaticIncomeFrequencyType,
+        amount: Number(data.walletAutomaticIncome?.amount) || 0,
+        paymentDay: Number(data.walletAutomaticIncome?.paymentDay) || 1,
+      } : {
+        type: 'NOT_SPECIFIED' as AutomaticIncomeFrequencyType,
+        amount: 0,
+        paymentDay: 1,
+      }
     };
     
     updateWallet(
-      { walletId: wallet.id, data: dataWithIcon },
+      { walletId: wallet.id, data: walletData },
       {
         onSuccess: () => {
           showSuccess("Succès", "Portefeuille modifié avec succès !");
@@ -266,6 +313,101 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
               </View>
             </View>
 
+            {/* Automatic Payment Section */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Versement automatique</Text>
+            <Text style={[styles.hintText, { color: theme.textTertiary, marginBottom: 12 }]}>
+              Configurez un montant qui sera versé automatiquement
+            </Text>
+
+            {/* Frequency Selector */}
+            <View style={styles.frequencyContainer}>
+              {FREQUENCY_OPTIONS.map((item) => (
+                <TouchableOpacity
+                  key={item.type}
+                  style={[
+                    styles.frequencyButton, 
+                    { backgroundColor: theme.background },
+                    selectedFrequency === item.type && { backgroundColor: selectedColor || theme.primary }
+                  ]}
+                  onPress={() => handleFrequencyChange(item.type)}
+                >
+                  <Ionicons 
+                    name={item.icon as any} 
+                    size={18} 
+                    color={selectedFrequency === item.type ? '#fff' : theme.textSecondary} 
+                  />
+                  <Text style={[
+                    styles.frequencyText, 
+                    { color: selectedFrequency === item.type ? '#fff' : theme.textSecondary }
+                  ]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Amount and Day inputs - only show if frequency is not NOT_SPECIFIED */}
+            {selectedFrequency !== 'NOT_SPECIFIED' && (
+              <View style={styles.paymentDetailsContainer}>
+                {/* Amount Input */}
+                <Text style={[styles.customLabel, { color: theme.textTertiary }]}>Montant (Ar)</Text>
+                <Controller
+                  control={control}
+                  name="walletAutomaticIncome.amount"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                      <Ionicons name="cash-outline" size={20} color={selectedColor || theme.primary} />
+                      <TextInput 
+                        style={[styles.input, { color: theme.text }]} 
+                        placeholder="Ex: 50000"
+                        placeholderTextColor={theme.textTertiary}
+                        value={value?.toString() || ''} 
+                        onChangeText={onChange}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  )}
+                />
+
+                {/* Day Input - only for MENSUAL and YEARLY */}
+                {selectedFrequency !== 'DAILY' && (
+                  <>
+                    <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>
+                      Jour du {selectedFrequency === 'MENSUAL' ? 'mois' : 'versement'}
+                    </Text>
+                    <Controller
+                      control={control}
+                      name="walletAutomaticIncome.paymentDay"
+                      render={({ field: { onChange, value } }) => (
+                        <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                          <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
+                          <TextInput 
+                            style={[styles.input, { color: theme.text }]} 
+                            placeholder={selectedFrequency === 'MENSUAL' ? "Ex: 1" : "Ex: 15"}
+                            placeholderTextColor={theme.textTertiary}
+                            value={value?.toString() || '1'} 
+                            onChangeText={onChange}
+                            keyboardType="numeric"
+                            maxLength={2}
+                          />
+                        </View>
+                      )}
+                    />
+                  </>
+                )}
+
+                {/* Summary */}
+                <View style={[styles.summaryCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                  <Ionicons name="information-circle" size={20} color={selectedColor || theme.primary} />
+                  <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
+                    {selectedFrequency === 'DAILY' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté chaque jour`}
+                    {selectedFrequency === 'MENSUAL' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté le jour ${frequencyDay || 1} de chaque mois`}
+                    {selectedFrequency === 'YEARLY' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté le jour ${frequencyDay || 1} de chaque année`}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Preview Card */}
             <View style={[styles.previewCard, { backgroundColor: (selectedColor || theme.primary) + '10', borderColor: (selectedColor || theme.primary) + '30' }]}>
               <View style={[styles.previewIcon, { backgroundColor: selectedColor || theme.primary }]}>
@@ -325,6 +467,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700' },
   subtitle: { fontSize: 14, marginTop: 2 },
   label: { fontSize: 14, fontWeight: '600', marginTop: 16, marginBottom: 8 },
+  hintText: { fontSize: 13, marginBottom: 8 },
   inputContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -383,6 +526,27 @@ const styles = StyleSheet.create({
   activeTextContainer: { flex: 1 },
   activeLabel: { fontSize: 15, fontWeight: '600' },
   activeHint: { fontSize: 12, marginTop: 2 },
+  frequencyContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  frequencyButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 10,
+    gap: 6,
+  },
+  frequencyText: { fontSize: 12, fontWeight: '600' },
+  paymentDetailsContainer: { marginTop: 16 },
+  summaryCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: 12, 
+    borderRadius: 10, 
+    borderWidth: 1, 
+    marginTop: 12,
+    gap: 8,
+  },
+  summaryText: { flex: 1, fontSize: 13 },
   previewCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 20, gap: 12 },
   previewIcon: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   previewContent: { flex: 1 },
@@ -392,13 +556,5 @@ const styles = StyleSheet.create({
   submitBtn: { padding: 18, borderRadius: 14, marginTop: 24, alignItems: 'center' },
   submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  deleteBtn: {
-    padding: 16,
-    borderRadius: 14,
-    marginTop: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  deleteContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  deleteBtnText: { fontSize: 15, fontWeight: '600' },
 });
+

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { 
   ActivityIndicator, 
   FlatList, 
@@ -18,10 +18,12 @@ import { Colors } from '../../constants/colors';
 import { useGoals } from '../hooks/useGoals';
 import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { GoalFilters, GoalItem } from '../types/goal';
 import EditGoalModal from './EditGoalModal';
 import ConfirmModal from './ConfirmModal';
 import { GoalCard } from './GoalCard';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function GoalList() {
   const [filters, setFilters] = useState<GoalFilters>({});
@@ -30,14 +32,78 @@ export default function GoalList() {
   const [goalToDelete, setGoalToDelete] = useState<GoalItem | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [isScrollingDown, setIsScrollingDown] = useState(false);
+  const [showDeletedMessage, setShowDeletedMessage] = useState(false);
   const filterAnim = useRef(new Animated.Value(1)).current;
   const flatListRef = useRef<FlatList>(null);
   const lastScrollY = useRef(0);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
   const { wallets } = useWallets();
+  const isFocused = useIsFocused();
+  const getGoalsDeletedFlag = useAuthStore((state) => state.getGoalsDeletedFlag);
+  const clearGoalsDeletedFlag = useAuthStore((state) => state.clearGoalsDeletedFlag);
 
-  const { goals, isLoading, archiveGoal, totalGoals, error, refetch } = useGoals(filters);
+  const { goals, isLoading, archiveGoal, deleteGoal, totalGoals, error, refetch } = useGoals(filters);
+
+  // Check if goals were deleted during logout and show message
+  const hasCheckedDeletedFlag = useRef(false);
+  const hasAutoDeleted = useRef(false);
+
+  useEffect(() => {
+    const checkDeletedFlag = async () => {
+      if (isFocused && !hasCheckedDeletedFlag.current) {
+        hasCheckedDeletedFlag.current = true;
+        const wasDeleted = await getGoalsDeletedFlag();
+        if (wasDeleted) {
+          setShowDeletedMessage(true);
+          setTimeout(() => setShowDeletedMessage(false), 3000);
+          await clearGoalsDeletedFlag();
+        }
+      }
+    };
+    
+    checkDeletedFlag();
+  }, [isFocused, getGoalsDeletedFlag, clearGoalsDeletedFlag]);
+
+  useEffect(() => {
+    if (!isFocused && goals.length > 0 && !hasAutoDeleted.current) {
+      // Identify completed or expired goals
+      const now = new Date();
+      const goalsToDelete = goals.filter((goal: GoalItem) => {
+        const isCompleted = goal.isCompleted === true;
+        const isExpired = new Date(goal.endingDate) < now;
+        return isCompleted || isExpired;
+      });
+
+      if (goalsToDelete.length > 0) {
+        hasAutoDeleted.current = true;
+        
+        // Delete all completed/expired goals
+        goalsToDelete.forEach((goal: GoalItem) => {
+          deleteGoal(
+            { walletId: goal.walletId, goalId: goal.id },
+            {
+              onSuccess: () => {
+                console.log(`Objectif "${goal.name}" supprimé automatiquement`);
+              },
+              onError: (err) => {
+                console.error(`Erreur suppression objectif ${goal.name}:`, err);
+              }
+            }
+          );
+        });
+
+        // Show message that goals were deleted
+        setShowDeletedMessage(true);
+        setTimeout(() => setShowDeletedMessage(false), 3000);
+      }
+    }
+
+    // Reset the flag when coming back to the tab
+    if (isFocused) {
+      hasAutoDeleted.current = false;
+    }
+  }, [isFocused, goals, deleteGoal]);
 
   // Debug: Log goal data when it changes
   useEffect(() => {
@@ -163,6 +229,16 @@ export default function GoalList() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Auto-delete message toast - displayed at bottom */}
+      {showDeletedMessage && (
+        <View style={[styles.deletedMessageContainer, { backgroundColor: '#374151' }]}>
+          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+          <Text style={styles.deletedMessageText}>
+            Les objectifs atteints et expirés ont été supprimés pour optimiser l&apos;espace
+          </Text>
+        </View>
+      )}
+
       {/* Floating Filter Button - animated hide/show on scroll */}
       <Animated.View 
         style={[
@@ -483,7 +559,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#CCCCCC',
+    backgroundColor: "#CCCCCC",
     alignSelf: 'center',
     marginBottom: 16,
   },
@@ -595,6 +671,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
+  },
+  // Auto-delete message toast styles
+  deletedMessageContainer: {
+    position: 'absolute',
+    bottom: 100,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 10,
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  deletedMessageText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
 });
 

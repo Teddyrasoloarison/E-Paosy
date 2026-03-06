@@ -6,7 +6,6 @@ import ConfirmModal from './ConfirmModal';
 import { useWallets, useWalletStatistics } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
 import { Wallet } from '../types/wallet';
-import EditAutomaticIncomeModal from './EditAutomaticIncomeModal';
 import EditWalletModal from './EditWalletModal';
 
 // Mapping des types vers les icônes par défaut
@@ -110,7 +109,7 @@ function WalletStatisticsModal({
 export default function WalletList() {
   const { data, isLoading, error, deleteWallet } = useWallets();
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
-  const [modalType, setModalType] = useState<'edit' | 'income' | 'statistics' | null>(null);
+  const [modalType, setModalType] = useState<'edit' | 'statistics' | null>(null);
   const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
@@ -121,16 +120,10 @@ export default function WalletList() {
     return data.values.find(w => w.id === selectedWalletId) || null;
   }, [selectedWalletId, data?.values]);
 
-  // Clic sur le wallet -> Ouvre EditAutomaticIncomeModal
+  // Clic sur le wallet -> Ouvre EditWalletModal
   const handleWalletPress = useCallback((wallet: Wallet) => {
     setSelectedWalletId(wallet.id);
-    setModalType('income');
-  }, []);
-
-  // Bouton pour aller vers AutomaticIncome
-  const handleAutomaticIncome = useCallback((wallet: Wallet) => {
-    setSelectedWalletId(wallet.id);
-    setModalType('income');
+    setModalType('edit');
   }, []);
 
   const handleEditWallet = useCallback((wallet: Wallet) => {
@@ -239,11 +232,13 @@ export default function WalletList() {
                 </Text>
                 
 {/* Affichage du revenu automatique */}
-                {item.walletAutomaticIncome && item.walletAutomaticIncome.type === 'MENSUAL' && (
+                {item.walletAutomaticIncome && item.walletAutomaticIncome.type !== 'NOT_SPECIFIED' && (
                    <View style={[styles.incomeBadge, { backgroundColor: theme.success + '15' }]}>
                      <Ionicons name="checkmark-circle" size={14} color={theme.success} />
                      <Text style={[styles.incomeBadgeText, { color: theme.success }]}>
-                       Revenu auto activé: {item.walletAutomaticIncome.amount} Ar
+                       {item.walletAutomaticIncome.type === 'DAILY' && `Revenu auto quotidien: ${item.walletAutomaticIncome.amount} Ar`}
+                       {item.walletAutomaticIncome.type === 'MENSUAL' && `Revenu auto mensuel: ${item.walletAutomaticIncome.amount} Ar`}
+                       {item.walletAutomaticIncome.type === 'YEARLY' && `Revenu auto annuel: ${item.walletAutomaticIncome.amount} Ar`}
                      </Text>
                    </View>
                 )}
@@ -258,23 +253,8 @@ export default function WalletList() {
               </View>
 
               <View style={styles.balanceContainer}>
-                <View style={styles.topActionButtons}>
-                  {/* Bouton pour supprimer */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.error + '20' }]}
-                    onPress={() => handleDeleteWallet(item)}
-                  >
-                    <Ionicons name="trash" size={16} color={theme.error} />
-                  </TouchableOpacity>
-                  {/* Bouton pour revenu automatique */}
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.success + '20' }]}
-                    onPress={() => handleAutomaticIncome(item)}
-                  >
-                    <Ionicons name="settings" size={16} color={theme.success} />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.bottomActionButtons}>
+                {/* 3 boutons côte à côte en haut à droite */}
+                <View style={styles.topRightActions}>
                   {/* Bouton pour modifier le portefeuille */}
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.primary + '20' }]}
@@ -291,6 +271,13 @@ export default function WalletList() {
                     }}
                   >
                     <Ionicons name="stats-chart" size={16} color={theme.info} />
+                  </TouchableOpacity>
+                  {/* Bouton pour supprimer */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.error + '20' }]}
+                    onPress={() => handleDeleteWallet(item)}
+                  >
+                    <Ionicons name="trash" size={16} color={theme.error} />
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.balance, { color: walletColor }]}>
@@ -315,14 +302,6 @@ export default function WalletList() {
           </View>
         }
       />
-
-      {selectedWallet && modalType === 'income' && (
-        <EditAutomaticIncomeModal
-          visible={true}
-          onClose={handleCloseModal}
-          wallet={selectedWallet}
-        />
-      )}
 
       {selectedWallet && modalType === 'edit' && (
         <EditWalletModal
@@ -478,7 +457,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: -5,
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
   },
   // Styles pour le modal des statistiques
   overlay: {

@@ -57,6 +57,14 @@ export const useGoals = (filters?: GoalFilters) => {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: ({ walletId, goalId }: { walletId: string; goalId: string }) =>
+      goalService.deleteGoal(accountId!, walletId, goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals', accountId] });
+    },
+  });
+
   return {
     ...query,
     goals: query.data?.values || [],
@@ -64,9 +72,11 @@ export const useGoals = (filters?: GoalFilters) => {
     createGoal: createMutation.mutate,
     updateGoal: updateMutation.mutate,
     archiveGoal: archiveMutation.mutate,
+    deleteGoal: deleteMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isArchiving: archiveMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 };
 

@@ -21,5 +21,9 @@ export const goalService = {
 
   archiveGoal: async (accountId: string, walletId: string, goalId: string): Promise<void> => {
     await api.post(`/account/${accountId}/wallet/${walletId}/goal/${goalId}/archive`);
+  },
+
+  deleteGoal: async (accountId: string, walletId: string, goalId: string): Promise<void> => {
+    await api.delete(`/account/${accountId}/wallet/${walletId}/goal/${goalId}`);
   }
 };

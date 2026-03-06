@@ -13,7 +13,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/logo-e-logo-e-paosy-removebg.png"
+        "foregroundImage": "./assets/images/logo-e-paosy-removebg.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [

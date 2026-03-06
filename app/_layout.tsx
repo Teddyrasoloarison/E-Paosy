@@ -13,6 +13,7 @@ import { useGoalNotifications } from '@/src/hooks/useGoalNotifications';
 import { useGoals } from '@/src/hooks/useGoals';
 import { notificationService } from '@/src/services/notificationService';
 import { GoalItem } from '@/src/types/goal';
+import { useAuthStore } from '@/src/store/useAuthStore';
 import { useEffect } from 'react';
 
 const queryClient = new QueryClient({
@@ -32,6 +33,14 @@ function AppContent() {
   const { resetTimer } = useInactivity();
   const { goals } = useGoals();
   const router = useRouter();
+  const accountId = useAuthStore((state) => state.accountId);
+
+  // Schedule daily expense notification when user is logged in
+  useEffect(() => {
+    if (accountId) {
+      notificationService.scheduleDailyExpenseNotification(accountId);
+    }
+  }, [accountId]);
 
   // Gérer le clic sur les notifications d'objectifs
   useEffect(() => {

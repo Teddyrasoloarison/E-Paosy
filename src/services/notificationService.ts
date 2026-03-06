@@ -1,5 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { startOfDay, endOfDay } from 'date-fns';
+import { transactionService } from './transactionService';
 
 // Configure how notifications are handled when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -61,7 +63,7 @@ export const notificationService = {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
 
-    const title = `🎉 Objectif "${goalName}" atteint !`;
+    const title = `Objectif "${goalName}" atteint ! 🎉`;
     const body = `Félicitations ! Vous avez atteint votre objectif de ${targetAmount.toLocaleString()} Ar avec ${currentAmount.toLocaleString()} Ar d'épargne.`;
 
     await Notifications.scheduleNotificationAsync({
@@ -91,13 +93,13 @@ export const notificationService = {
     let body: string;
 
     if (daysRemaining === 0) {
-      title = `⚠️ Objectif "${goalName}" expire aujourd'hui !`;
+      title = `Objectif "${goalName}" expire aujourd'hui ! ⚠️`;
       body = `Vous avez jusqu'à aujourd'hui pour atteindre votre objectif de ${targetAmount.toLocaleString()} Ar.`;
     } else if (daysRemaining === 1) {
-      title = `⏰ Objectif "${goalName}" expire demain !`;
+      title = `Objectif "${goalName}" expire demain ! ⏰`;
       body = `Plus que 1 jour pour atteindre votre objectif.`;
     } else {
-      title = `📅 Objectif "${goalName}" : ${daysRemaining} jours restants`;
+      title = `Objectif "${goalName}" : ${daysRemaining} jours restants 📅`;
       body = `Il vous reste ${daysRemaining} jours pour atteindre votre objectif.`;
     }
 
@@ -122,7 +124,7 @@ export const notificationService = {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
 
-    const title = `❌ Objectif "${goalName}" expiré`;
+    const title = `Objectif "${goalName}" expiré ❌`;
     const body = `Le délai pour atteindre votre objectif est dépassé.`;
 
     await Notifications.scheduleNotificationAsync({
@@ -161,7 +163,7 @@ export const notificationService = {
     await Notifications.cancelAllScheduledNotificationsAsync();
   },
 
-  /**
+/**
    * Get the notification categories (for handling notification taps)
    */
   async setNotificationCategories(): Promise<void> {
@@ -177,6 +179,93 @@ export const notificationService = {
         options: { isDestructive: true },
       },
     ]);
+  },
+
+  /**
+   * Request permissions and set up the daily expense notification channel
+   */
+  async setupDailyExpenseNotification(): Promise<boolean> {
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) return false;
+
+    // Set up a separate notification channel for daily expenses on Android
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('daily-expenses', {
+        name: 'Dépenses quotidiennes',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FFE4E1',
+        sound: 'default',
+      });
+    }
+
+    return true;
+  },
+
+  /**
+   * Schedule a daily notification at 19:00 to show the total daily expenses
+   * @param accountId - The user's account ID
+   */
+  async scheduleDailyExpenseNotification(accountId: string): Promise<void> {
+    const hasPermission = await this.setupDailyExpenseNotification();
+    if (!hasPermission) return;
+
+    try {
+      // Get today's date range
+      const today = new Date();
+      const startOfToday = startOfDay(today);
+      const endOfToday = endOfDay(today);
+
+      // Fetch today's expenses (type OUT) from all wallets
+      const result = await transactionService.getTransactions(accountId, {
+        type: 'OUT',
+        startingDate: startOfToday.toISOString(),
+        endingDate: endOfToday.toISOString(),
+        pageSize: 1000, // Get all transactions for the day
+      });
+
+      // Calculate total expenses
+      const totalExpenses = result.data.reduce((sum, transaction) => sum + transaction.amount, 0);
+
+      // Create the notification content
+      const title = 'Récapitulatif des dépenses 📊';
+      let body: string;
+
+      if (totalExpenses === 0) {
+        body = "Vous n'avez pas fait de dépenses aujourd'hui";
+      } else {
+        body = `Total des dépenses aujourd'hui: ${totalExpenses.toLocaleString()} Ar`;
+      }
+
+      // Schedule the daily notification at 19:00
+      const trigger: Notifications.DailyTriggerInput = {
+        hour: 19,
+        minute: 0,
+        type: Notifications.SchedulableTriggerInputTypes.DAILY
+      };
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: 'daily-expense', accountId },
+          sound: 'default',
+        },
+        trigger,
+        identifier: 'daily-expense-notification', // Fixed identifier to replace previous daily notification
+      });
+
+      console.log('Daily expense notification scheduled for 19:00');
+    } catch (error) {
+      console.error('Error scheduling daily expense notification:', error);
+    }
+  },
+
+  /**
+   * Cancel the daily expense notification
+   */
+  async cancelDailyExpenseNotification(): Promise<void> {
+    await Notifications.cancelScheduledNotificationAsync('daily-expense-notification');
   },
 };
 

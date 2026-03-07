@@ -53,7 +53,7 @@ export const GoalCard = ({ goal, onPress }: Props) => {
         style={[
           styles.card, 
           { backgroundColor: theme.surface, borderColor: theme.border },
-          (isCompleted || isExpired) && { opacity: 0.7, backgroundColor: theme.backgroundSecondary }
+          (isCompleted || isExpired) && { opacity: 0.6, backgroundColor: theme.background }
         ]} 
         onPress={onPress} 
         activeOpacity={0.7}

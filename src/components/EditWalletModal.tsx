@@ -97,6 +97,7 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
         type: wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED',
         amount: wallet.walletAutomaticIncome?.amount || undefined,
         paymentDay: wallet.walletAutomaticIncome?.paymentDay || undefined,
+        paymentMonth: wallet.walletAutomaticIncome?.paymentMonth || 1,
       }
     }
   });
@@ -127,9 +128,11 @@ export default function EditWalletModal({ visible, onClose, wallet }: Props) {
           type: wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED',
           amount: wallet.walletAutomaticIncome?.amount || undefined,
           paymentDay: wallet.walletAutomaticIncome?.paymentDay || undefined,
+          paymentMonth: wallet.walletAutomaticIncome?.paymentMonth || 1,
         }
       });
       setSelectedFrequency(wallet.walletAutomaticIncome?.type || 'NOT_SPECIFIED');
+      setSelectedMonth(wallet.walletAutomaticIncome?.paymentMonth || 1);
     }
   }, [visible, wallet, reset]);
 
@@ -470,15 +473,21 @@ const onSubmit = (data: any) => {
                   </>
                 )}
 
-{/* Summary */}
+                {/* Summary */}
                 <View style={[styles.summaryCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
                   <Ionicons name="information-circle" size={20} color={selectedColor || theme.primary} />
                   <Text style={[styles.summaryText, { color: theme.textSecondary }]}>
-                    {selectedFrequency === 'DAILY' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté chaque jour`}
-                    {selectedFrequency === 'MENSUAL' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté le jour ${frequencyDay || 1} de chaque mois`}
-                    {selectedFrequency === 'YEARLY' && `Un montant de ${frequencyAmount || 0} Ar sera ajouté le ${frequencyDay || 1} ${MONTHS.find(m => m.value === selectedMonth)?.label || 'Janvier'} de chaque année`}
+                    {selectedFrequency === 'DAILY'
+                      ? `Un montant de ${frequencyAmount || 0} Ar sera ajouté chaque jour`
+                      : selectedFrequency === 'MENSUAL'
+                      ? `Un montant de ${frequencyAmount || 0} Ar sera ajouté le jour ${frequencyDay || 1} de chaque mois`
+                      : selectedFrequency === 'YEARLY'
+                      ? `Un montant de ${frequencyAmount || 0} Ar sera ajouté le ${
+                          MONTHS.find((m) => m.value === selectedMonth)?.label || 'Janvier'
+                        } de chaque année`
+                      : null}
                   </Text>
-                </View> REPLACE
+                </View>
               </View>
             )}
 

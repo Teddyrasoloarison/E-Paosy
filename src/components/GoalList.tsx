@@ -23,6 +23,7 @@ import { GoalFilters, GoalItem } from '../types/goal';
 import EditGoalModal from './EditGoalModal';
 import ConfirmModal from './ConfirmModal';
 import { GoalCard } from './GoalCard';
+import { useModernAlert } from '../hooks/useModernAlert';
 import { useIsFocused } from '@react-navigation/native';
 
 export default function GoalList() {
@@ -42,28 +43,47 @@ export default function GoalList() {
   const isFocused = useIsFocused();
   const getGoalsDeletedFlag = useAuthStore((state) => state.getGoalsDeletedFlag);
   const clearGoalsDeletedFlag = useAuthStore((state) => state.clearGoalsDeletedFlag);
+  const { show } = useModernAlert();
 
   const { goals, isLoading, archiveGoal, deleteGoal, totalGoals, error, refetch } = useGoals(filters);
 
   // Check if goals were deleted during logout and show message
   const hasCheckedDeletedFlag = useRef(false);
-  const hasAutoDeleted = useRef(false);
 
   useEffect(() => {
     const checkDeletedFlag = async () => {
       if (isFocused && !hasCheckedDeletedFlag.current) {
         hasCheckedDeletedFlag.current = true;
-        const wasDeleted = await getGoalsDeletedFlag();
-        if (wasDeleted) {
-          setShowDeletedMessage(true);
-          setTimeout(() => setShowDeletedMessage(false), 3000);
+        const deletedGoals = await getGoalsDeletedFlag();
+        if (deletedGoals && deletedGoals.length > 0) {
+          const achievedGoals = deletedGoals.filter(g => g.status === 'achieved').map(g => g.name).join(', ');
+          const expiredGoals = deletedGoals.filter(g => g.status === 'expired').map(g => g.name).join(', ');
+
+          let message = '';
+          if (achievedGoals) {
+            message += `Objectifs atteints et supprimés : ${achievedGoals}. `;
+          }
+          if (expiredGoals) {
+            message += `Objectifs expirés et supprimés : ${expiredGoals}.`;
+          }
+
+          show({
+            title: 'Objectifs Supprimés',
+            message: message,
+            type: 'info',
+            buttons: [{ text: 'OK' }],
+          });
+
           await clearGoalsDeletedFlag();
         }
       }
     };
     
     checkDeletedFlag();
-  }, [isFocused, getGoalsDeletedFlag, clearGoalsDeletedFlag]);
+  }, [isFocused, getGoalsDeletedFlag, clearGoalsDeletedFlag, show]);
+
+
+  const hasAutoDeleted = useRef(false);
 
   useEffect(() => {
     if (!isFocused && goals.length > 0 && !hasAutoDeleted.current) {
@@ -104,6 +124,7 @@ export default function GoalList() {
       hasAutoDeleted.current = false;
     }
   }, [isFocused, goals, deleteGoal]);
+
 
   // Debug: Log goal data when it changes
   useEffect(() => {
@@ -697,4 +718,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

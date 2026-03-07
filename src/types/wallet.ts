@@ -7,6 +7,7 @@ export type AutomaticIncomeFrequencyType = 'NOT_SPECIFIED' | 'DAILY' | 'MENSUAL'
 export interface WalletAutomaticIncome {
   amount: number;
   paymentDay: number;
+  paymentMonth?: number; // Pour YEARLY: mois du versement (1-12)
   type: AutomaticIncomeFrequencyType;
 }
 

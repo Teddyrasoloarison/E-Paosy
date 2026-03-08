@@ -10,6 +10,12 @@ export interface BiometricCredentials {
 }
 
 export const fingerprintAuthService = {
+  /** Vérifie si l'appareil possède un lecteur d'empreinte/Face ID (matériel seulement) */
+  hasHardware: async (): Promise<boolean> => {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    return hasHardware;
+  },
+
   /** Vérifie si l'appareil possède un lecteur d'empreinte/Face ID */
   isAvailable: async (): Promise<boolean> => {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();

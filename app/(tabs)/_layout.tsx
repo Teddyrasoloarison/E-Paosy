@@ -12,6 +12,7 @@ export default function TabLayout() {
       <Stack.Screen name="calendar" />
       <Stack.Screen name="objectif" />
       <Stack.Screen name="configuration" />
+      <Stack.Screen name="empreinte" />
       <Stack.Screen name="projet" />
       <Stack.Screen name="projet/[id]" />
     </Stack>

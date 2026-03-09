@@ -24,6 +24,7 @@ interface DashboardShellProps {
   title: string;
   subtitle?: string;
   children: ReactNode;
+  icon?: string;
 }
 
 export default function DashboardShell({ title, subtitle, children }: DashboardShellProps) {

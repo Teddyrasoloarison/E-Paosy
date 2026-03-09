@@ -29,13 +29,24 @@ export default function EmpreinteScreen() {
   
   // Auth store
   const username = useAuthStore((state) => state.username);
+  const accountId = useAuthStore((state) => state.accountId);
   
-  // State
+  // State for password change section
+  const [oldPassword, setOldPassword] = useState('');
+  const [confirmOldPassword, setConfirmOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showConfirmOldPassword, setShowConfirmOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
+
+  // State for fingerprint section
   const [isFingerprintEnabled, setIsFingerprintEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [fingerprintPassword, setFingerprintPassword] = useState('');
+  const [showFingerprintPassword, setShowFingerprintPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showNoHardwareWarning, setShowNoHardwareWarning] = useState(false);
   const [showActivationMessage, setShowActivationMessage] = useState(false);
@@ -56,7 +67,7 @@ export default function EmpreinteScreen() {
     }
   };
 
-  // Handle toggle change
+  // Handle toggle change for fingerprint
   const handleToggleFingerprint = async (value: boolean) => {
     if (value) {
       // Trying to activate fingerprint
@@ -77,19 +88,19 @@ export default function EmpreinteScreen() {
     setIsFingerprintEnabled(value);
   };
 
-  // Handle cancel
+  // Handle cancel for fingerprint
   const handleCancel = () => {
     checkFingerprintStatus();
     setHasChanges(false);
-    setPassword('');
-    setShowPassword(false);
+    setFingerprintPassword('');
+    setShowFingerprintPassword(false);
     setShowActivationMessage(false);
     setShowNoHardwareWarning(false);
   };
 
-  // Handle save
-  const handleSave = async () => {
-    if (!password.trim()) {
+  // Handle save for fingerprint
+  const handleSaveFingerprint = async () => {
+    if (!fingerprintPassword.trim()) {
       showWarning('Mot de passe requis', 'Veuillez entrer votre mot de passe pour continuer.');
       return;
     }
@@ -99,14 +110,14 @@ export default function EmpreinteScreen() {
       // First, verify the password by attempting to sign in
       const signInResponse = await authService.signIn({
         username: username || '',
-        password: password,
+        password: fingerprintPassword,
       });
 
       if (isFingerprintEnabled) {
         // Activating fingerprint
         const result = await fingerprintAuthService.enrollFingerprint({
           username: username || '',
-          password: password,
+          password: fingerprintPassword,
         });
 
         if (result.success) {
@@ -115,7 +126,7 @@ export default function EmpreinteScreen() {
             'Votre empreinte digitale a été associée à votre compte.'
           );
           setHasChanges(false);
-          setPassword('');
+          setFingerprintPassword('');
           setShowActivationMessage(false);
         } else {
           showWarning(
@@ -131,7 +142,7 @@ export default function EmpreinteScreen() {
           'L\'empreinte digitale a été retirée de votre compte.'
         );
         setHasChanges(false);
-        setPassword('');
+        setFingerprintPassword('');
       }
     } catch (error: any) {
       showError(
@@ -140,6 +151,58 @@ export default function EmpreinteScreen() {
       );
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Handle password change
+  const handleChangePassword = async () => {
+    // Validation
+    if (!oldPassword.trim()) {
+      showWarning('Mot de passe requis', 'Veuillez entrer votre ancien mot de passe.');
+      return;
+    }
+    if (!confirmOldPassword.trim()) {
+      showWarning('Confirmation requise', 'Veuillez confirmer votre ancien mot de passe.');
+      return;
+    }
+    if (!newPassword.trim()) {
+      showWarning('Nouveau mot de passe requis', 'Veuillez entrer un nouveau mot de passe.');
+      return;
+    }
+    if (oldPassword !== confirmOldPassword) {
+      showWarning('Erreur de confirmation', 'Les deux mots de passe ne correspondent pas.');
+      return;
+    }
+    if (oldPassword === newPassword) {
+      showWarning('Erreur', 'Le nouveau mot de passe doit être différent de l\'ancien.');
+      return;
+    }
+    if (newPassword.length < 4) {
+      showWarning('Mot de passe trop court', 'Le mot de passe doit contenir au moins 4 caractères.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await authService.changePassword(accountId || '', oldPassword, newPassword);
+      showSuccess(
+        'Mot de passe modifié',
+        'Votre mot de passe a été changé avec succès.'
+      );
+      // Reset form
+      setOldPassword('');
+      setConfirmOldPassword('');
+      setNewPassword('');
+      setPasswordChangeSuccess(true);
+      setTimeout(() => setPasswordChangeSuccess(false), 3000);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Erreur lors du changement de mot de passe';
+      showError(
+        'Erreur',
+        errorMessage
+      );
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -159,7 +222,7 @@ export default function EmpreinteScreen() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Empreinte digitale" subtitle="Configuration de l'empreinte" icon="finger-print">
+      <DashboardShell title="Sécurité" subtitle="Gérez votre sécurité" icon="shield-checkmark">
         <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
           <Text style={{ color: theme.text }}>Chargement...</Text>
         </View>
@@ -168,8 +231,134 @@ export default function EmpreinteScreen() {
   }
 
   return (
-    <DashboardShell title="Empreinte digitale" subtitle="Configuration de l'empreinte" icon="finger-print">
+    <DashboardShell title="Sécurité" subtitle="Gérez votre sécurité" icon="shield-checkmark">
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        
+        {/* SECTION 1: Modification de mot de passe */}
+        <Text style={[styles.mainSectionTitle, { color: theme.textSecondary }]}>
+          MODIFICATION DE MOT DE PASSE
+        </Text>
+        
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.iconContainer, { backgroundColor: theme.primary + '15' }]}>
+              <Ionicons name="key" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>
+                Changer mon mot de passe
+              </Text>
+              <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+                Mettez à jour votre mot de passe
+              </Text>
+            </View>
+          </View>
+
+          {/* Ancien mot de passe */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>
+              Ancien mot de passe
+            </Text>
+            <View style={[styles.inputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+              <Ionicons name="lock-closed-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
+            <TextInput
+                placeholder="Entrez l'ancien mot de passe"
+                style={[styles.input, { color: theme.text }]}
+                placeholderTextColor={theme.textTertiary}
+                value={oldPassword}
+                onChangeText={setOldPassword}
+                secureTextEntry={!showOldPassword}
+                editable={!isChangingPassword}
+              />
+              <TouchableOpacity onPress={() => setShowOldPassword((prev) => !prev)}>
+                <Ionicons
+                  name={showOldPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={theme.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Confirmation de l'ancien mot de passe */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>
+              Confirmer l&apos;ancien mot de passe
+            </Text>
+            <View style={[styles.inputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+              <Ionicons name="lock-closed-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                placeholder="Confirmez l'ancien mot de passe"
+                style={[styles.input, { color: theme.text }]}
+                placeholderTextColor={theme.textTertiary}
+                value={confirmOldPassword}
+                onChangeText={setConfirmOldPassword}
+                secureTextEntry={!showConfirmOldPassword}
+                editable={!isChangingPassword}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmOldPassword((prev) => !prev)}>
+                <Ionicons
+                  name={showConfirmOldPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={theme.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Nouveau mot de passe */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>
+              Nouveau mot de passe
+            </Text>
+            <View style={[styles.inputContainer, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+              <Ionicons name="key-outline" size={18} color={theme.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                placeholder="Entrez le nouveau mot de passe"
+                style={[styles.input, { color: theme.text }]}
+                placeholderTextColor={theme.textTertiary}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={!showNewPassword}
+                editable={!isChangingPassword}
+              />
+              <TouchableOpacity onPress={() => setShowNewPassword((prev) => !prev)}>
+                <Ionicons
+                  name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={theme.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Success message */}
+          {passwordChangeSuccess && (
+            <View style={[styles.successBox, { backgroundColor: '#D1FAE5', borderColor: '#10B981' }]}>
+              <Ionicons name="checkmark-circle" size={20} color="#059669" />
+              <Text style={[styles.successText, { color: '#047857' }]}>
+                Mot de passe modifié avec succès!
+              </Text>
+            </View>
+          )}
+
+          {/* Enregistrer button */}
+          <TouchableOpacity
+            style={[styles.saveButton, { backgroundColor: theme.primary }, isChangingPassword && { opacity: 0.7 }]}
+            onPress={handleChangePassword}
+            disabled={isChangingPassword}
+          >
+            <Text style={styles.saveButtonText}>
+              {isChangingPassword ? 'Enregistrement...' : 'Enregistrer'}
+            </Text>
+            {!isChangingPassword && <Ionicons name="checkmark" size={20} color="#FFFFFF" />}
+          </TouchableOpacity>
+        </View>
+
+        {/* SECTION 2: Configuration d'empreinte */}
+        <Text style={[styles.mainSectionTitle, { color: theme.textSecondary }]}>
+          CONFIGURATION D&apos;EMPREINTE
+        </Text>
         
         {/* Warning message when device has no hardware */}
         {showNoHardwareWarning && (
@@ -223,7 +412,7 @@ export default function EmpreinteScreen() {
 
         {/* Password input and buttons - only shown when there are changes */}
         {hasChanges && (
-          <View style={[styles.passwordSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
               Confirmer avec votre mot de passe
             </Text>
@@ -234,14 +423,14 @@ export default function EmpreinteScreen() {
                 placeholder="Mot de passe"
                 style={[styles.input, { color: theme.text }]}
                 placeholderTextColor={theme.textTertiary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
+                value={fingerprintPassword}
+                onChangeText={setFingerprintPassword}
+                secureTextEntry={!showFingerprintPassword}
                 editable={!isSaving}
               />
-              <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)}>
+              <TouchableOpacity onPress={() => setShowFingerprintPassword((prev) => !prev)}>
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showFingerprintPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
                   color={theme.textSecondary}
                 />
@@ -261,7 +450,7 @@ export default function EmpreinteScreen() {
               
               <TouchableOpacity
                 style={[styles.saveButton, { backgroundColor: theme.primary }, isSaving && { opacity: 0.7 }]}
-                onPress={handleSave}
+                onPress={handleSaveFingerprint}
                 disabled={isSaving}
               >
                 <Text style={styles.saveButtonText}>
@@ -296,6 +485,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  mainSectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 20,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   warningBox: {
     flexDirection: 'row',
@@ -359,16 +557,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  passwordSection: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -377,7 +577,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     height: 52,
-    marginBottom: 16,
   },
   inputIcon: {
     marginRight: 10,
@@ -386,6 +585,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     marginRight: 8,
+  },
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+    marginBottom: 16,
+  },
+  successText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
   },
   buttonRow: {
     flexDirection: 'row',

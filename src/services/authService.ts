@@ -36,4 +36,18 @@ export const authService = {
       throw error;
     }
   },
+
+  // Changement de mot de passe
+  changePassword: async (accountId: string, oldPassword: string, newPassword: string) => {
+    try {
+      const response = await api.post('/auth/change-password', {
+        accountId,
+        oldPassword,
+        newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

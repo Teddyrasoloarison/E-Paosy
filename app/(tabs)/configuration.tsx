@@ -73,14 +73,14 @@ export default function ConfigurationScreen() {
             subtitle="Gérer les notifications"
           />
           <SettingItem 
-            icon="finger-print" 
-            title="Empreinte digitale" 
+            icon="shield-checkmark" 
+            title="Sécurité" 
             subtitle="Sécurisez votre compte"
             onPress={() => router.push('/(tabs)/empreinte')}
           />
         </View>
 
-        {/* SECTION 2 : ABONNEMENT */}
+        {/* Abonnement */}
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>MON ABONNEMENT</Text>
         
         <View style={[styles.subscriptionCard, isPremium ? styles.premiumCard : { backgroundColor: theme.surface, borderColor: theme.border }]}>

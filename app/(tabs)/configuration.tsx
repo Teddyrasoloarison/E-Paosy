@@ -10,6 +10,7 @@ import { useThemeStore } from '../../src/store/useThemeStore';
 export default function ConfigurationScreen() {
   const router = useRouter();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
+  const [isPremium, setIsPremium] = React.useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -72,10 +73,39 @@ export default function ConfigurationScreen() {
             subtitle="Gérer les notifications"
           />
           <SettingItem 
-            icon="finger-print" 
-            title="Empreinte digitale" 
+            icon="shield-checkmark" 
+            title="Sécurité" 
             subtitle="Sécurisez votre compte"
+            onPress={() => router.push('/(tabs)/empreinte')}
           />
+        </View>
+
+        {/* Abonnement */}
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>MON ABONNEMENT</Text>
+        
+        <View style={[styles.subscriptionCard, isPremium ? styles.premiumCard : { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.subscriptionRow}>
+            <View>
+              <Text style={[styles.subscriptionLabel, isPremium && styles.whiteText]}>Statut actuel</Text>
+              <Text style={[styles.subscriptionStatus, isPremium && styles.whiteTextBold]}>
+                {isPremium ? 'PRO (Entrepreneur)' : 'Version Gratuite'}
+              </Text>
+            </View>
+            {isPremium ? (
+              <View style={[styles.premiumBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Ionicons name="star" size={16} color="#FFFFFF" />
+                <Text style={styles.premiumBadgeText}>ACTIVE</Text>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.premiumBtn, { backgroundColor: theme.primary }]} 
+                onPress={() => setIsPremium(true)}
+              >
+                <Ionicons name="diamond" size={16} color="#FFFFFF" />
+                <Text style={styles.premiumBtnText}>Passer Premium</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Language & Support */}
@@ -191,5 +221,63 @@ const styles = StyleSheet.create({
   appInfoCopyright: {
     fontSize: 12,
     marginTop: 8,
+  },
+  // Subscription Card Styles
+  subscriptionCard: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  premiumCard: {
+    backgroundColor: '#0D9488',
+    borderWidth: 0,
+  },
+  subscriptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  subscriptionLabel: {
+    fontSize: 13,
+    color: '#475569',
+  },
+  subscriptionStatus: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 4,
+  },
+  whiteText: {
+    color: '#FFFFFF',
+  },
+  whiteTextBold: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  premiumBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  premiumBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+  },
+  premiumBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -43,6 +43,22 @@ const FREQUENCY_OPTIONS: { type: FrequencyType; label: string; icon: string }[] 
   { type: 'YEARLY', label: 'Annuel', icon: 'calendar-outline' },
 ];
 
+// Mois de l'année pour le versement annuel
+const MONTHS = [
+  { value: 1, label: 'Janvier' },
+  { value: 2, label: 'Février' },
+  { value: 3, label: 'Mars' },
+  { value: 4, label: 'Avril' },
+  { value: 5, label: 'Mai' },
+  { value: 6, label: 'Juin' },
+  { value: 7, label: 'Juillet' },
+  { value: 8, label: 'Août' },
+  { value: 9, label: 'Septembre' },
+  { value: 10, label: 'Octobre' },
+  { value: 11, label: 'Novembre' },
+  { value: 12, label: 'Décembre' },
+];
+
 export default function CreateWalletModal({ visible, onClose }: Props) {
   const { createWallet, isCreating } = useWallets();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
@@ -50,6 +66,7 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
   const { success: showSuccess, error: showError } = useModernAlert();
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
   const [selectedFrequency, setSelectedFrequency] = useState<FrequencyType>('NOT_SPECIFIED');
+  const [selectedMonth, setSelectedMonth] = useState<number>(1);
   
   const { 
     control, 
@@ -69,8 +86,8 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
       isActive: true,
       walletAutomaticIncome: {
         type: 'NOT_SPECIFIED',
-        amount: 0,
-        paymentDay: 1,
+        amount: undefined,
+        paymentDay: undefined,
       }
     }
   });
@@ -87,7 +104,7 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
     return () => backHandler.remove();
   }, [visible, onClose]);
 
-  // Reset form when modal closes
+// Reset form when modal closes
   useEffect(() => {
     if (!visible) {
       reset({ 
@@ -99,12 +116,13 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
         isActive: true,
         walletAutomaticIncome: {
           type: 'NOT_SPECIFIED',
-          amount: 0,
-          paymentDay: 1,
+          amount: undefined,
+          paymentDay: undefined,
         }
       });
       setSelectedColor(PRESET_COLORS[0]);
       setSelectedFrequency('NOT_SPECIFIED');
+      setSelectedMonth(1);
     }
   }, [visible, reset]);
 
@@ -121,7 +139,7 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
     setValue('walletAutomaticIncome.type', freq);
   };
 
-  const onSubmit = (data: any) => {
+const onSubmit = (data: any) => {
     // Assigner automatiquement l'icône et la couleur basées sur le type
     const walletData = {
       name: data.name,
@@ -134,6 +152,7 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
         type: selectedFrequency as AutomaticIncomeFrequencyType,
         amount: Number(data.walletAutomaticIncome?.amount) || 0,
         paymentDay: Number(data.walletAutomaticIncome?.paymentDay) || 1,
+        paymentMonth: selectedFrequency === 'YEARLY' ? selectedMonth : undefined,
       } : {
         type: 'NOT_SPECIFIED' as AutomaticIncomeFrequencyType,
         amount: 0,
@@ -319,7 +338,7 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
                       style={[styles.input, { color: theme.text }]} 
                       placeholder="Ex: 50000"
                       placeholderTextColor={theme.textTertiary}
-                      value={value?.toString() || ''} 
+                      value={(value as number | undefined)?.toString() || ''} 
                       onChangeText={onChange}
                       keyboardType="numeric"
                     />
@@ -327,30 +346,84 @@ export default function CreateWalletModal({ visible, onClose }: Props) {
                 )}
               />
 
-              {/* Day Input - only for MENSUAL and YEARLY */}
+{/* Day Input - only for MENSUAL and YEARLY */}
               {selectedFrequency !== 'DAILY' && (
                 <>
-                  <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>
-                    Jour du {selectedFrequency === 'MENSUAL' ? 'mois' : 'versement'}
-                  </Text>
-                  <Controller
-                    control={control}
-                    name="walletAutomaticIncome.paymentDay"
-                    render={({ field: { onChange, value } }) => (
-                      <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
-                        <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
-                        <TextInput 
-                          style={[styles.input, { color: theme.text }]} 
-                          placeholder={selectedFrequency === 'MENSUAL' ? "Ex: 1" : "Ex: 15"}
-                          placeholderTextColor={theme.textTertiary}
-                          value={value?.toString() || '1'} 
-                          onChangeText={onChange}
-                          keyboardType="numeric"
-                          maxLength={2}
-                        />
+                  {selectedFrequency === 'MENSUAL' ? (
+                    <>
+                      <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>
+                        Jour du mois
+                      </Text>
+                      <Controller
+                        control={control}
+                        name="walletAutomaticIncome.paymentDay"
+                        render={({ field: { onChange, value } }) => (
+                          <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                            <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
+                            <TextInput 
+                              style={[styles.input, { color: theme.text }]} 
+                              placeholder="Entre 1 et 30"
+                              placeholderTextColor={theme.textTertiary}
+                              value={(value as number | undefined)?.toString() || ''} 
+                              onChangeText={onChange}
+                              keyboardType="numeric"
+                              maxLength={2}
+                            />
+                          </View>
+                        )}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {/* YEARLY: Day selection */}
+                      <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>
+                        Jour du versement
+                      </Text>
+                      <Controller
+                        control={control}
+                        name="walletAutomaticIncome.paymentDay"
+                        render={({ field: { onChange, value } }) => (
+                          <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                            <Ionicons name="calendar-outline" size={20} color={selectedColor || theme.primary} />
+                            <TextInput 
+                              style={[styles.input, { color: theme.text }]} 
+                              placeholder="Entre 1 et 30"
+                              placeholderTextColor={theme.textTertiary}
+                              value={(value as number | undefined)?.toString() || ''} 
+                              onChangeText={onChange}
+                              keyboardType="numeric"
+                              maxLength={2}
+                            />
+                          </View>
+                        )}
+                      />
+                      
+                      {/* YEARLY: Month selection */}
+                      <Text style={[styles.customLabel, { color: theme.textTertiary, marginTop: 12 }]}>
+                        Mois du versement
+                      </Text>
+                      <View style={styles.monthContainer}>
+                        {MONTHS.map((month) => (
+                          <TouchableOpacity
+                            key={month.value}
+                            style={[
+                              styles.monthButton, 
+                              { backgroundColor: theme.background },
+                              selectedMonth === month.value && { backgroundColor: selectedColor || theme.primary }
+                            ]}
+                            onPress={() => setSelectedMonth(month.value)}
+                          >
+                            <Text style={[
+                              styles.monthText, 
+                              { color: selectedMonth === month.value ? '#fff' : theme.textSecondary }
+                            ]}>
+                              {month.label.substring(0, 3)}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
                       </View>
-                    )}
-                  />
+                    </>
+                  )}
                 </>
               )}
 
@@ -480,9 +553,16 @@ const styles = StyleSheet.create({
   previewContent: { flex: 1 },
   previewName: { fontSize: 16, fontWeight: '600' },
   previewType: { fontSize: 13, marginTop: 2 },
-  previewHint: { fontSize: 11, marginTop: 4 },
+previewHint: { fontSize: 11, marginTop: 4 },
   submitBtn: { padding: 18, borderRadius: 14, marginTop: 24, alignItems: 'center' },
   submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' }
+  submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  monthContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  monthButton: { 
+    paddingHorizontal: 12, 
+    paddingVertical: 8, 
+    borderRadius: 8,
+  },
+  monthText: { fontSize: 12, fontWeight: '600' },
 });
 

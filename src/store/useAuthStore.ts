@@ -10,9 +10,12 @@ interface AuthState {
   setAuth: (token: string, accountId: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
   loadStorage: () => Promise<void>;
-  deleteCompletedAndExpiredGoals: () => Promise<number>;
-  setGoalsDeletedFlag: (deleted: boolean) => Promise<void>;
-  getGoalsDeletedFlag: () => Promise<boolean>;
+  deleteCompletedAndExpiredGoals: () => Promise<{
+    deletedCount: number;
+    deletedGoalNames: { name: string; status: 'achieved' | 'expired' }[];
+  }>;
+  setGoalsDeletedFlag: (deleted: { name: string; status: 'achieved' | 'expired' }[]) => Promise<void>;
+  getGoalsDeletedFlag: () => Promise<{ name: string; status: 'achieved' | 'expired' }[] | null>;
   clearGoalsDeletedFlag: () => Promise<void>;
 }
 
@@ -48,7 +51,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   deleteCompletedAndExpiredGoals: async () => {
     const accountId = useAuthStore.getState().accountId;
     if (!accountId) {
-      return 0;
+      return { deletedCount: 0, deletedGoalNames: [] };
     }
 
     try {
@@ -69,10 +72,15 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Delete each goal
       let deletedCount = 0;
+      const deletedGoalNames: { name: string; status: 'achieved' | 'expired' }[] = [];
       for (const goal of goalsToDelete) {
         try {
           await goalService.deleteGoal(accountId, goal.walletId, goal.id);
           deletedCount++;
+          deletedGoalNames.push({
+            name: goal.name,
+            status: goal.isCompleted ? 'achieved' : 'expired',
+          });
           console.log(`Objectif "${goal.name}" supprimé automatiquement`);
         } catch (err) {
           console.error(`Erreur suppression objectif ${goal.name}:`, err);
@@ -81,19 +89,19 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Set flag if any goals were deleted
       if (deletedCount > 0) {
-        await SecureStore.setItemAsync('goalsDeleted', 'true');
+        await SecureStore.setItemAsync('goalsDeleted', JSON.stringify(deletedGoalNames));
       }
 
-      return deletedCount;
+      return { deletedCount, deletedGoalNames };
     } catch (err) {
       console.error('Erreur lors de la suppression des objectifs:', err);
-      return 0;
+      return { deletedCount: 0, deletedGoalNames: [] };
     }
   },
 
-  setGoalsDeletedFlag: async (deleted: boolean) => {
-    if (deleted) {
-      await SecureStore.setItemAsync('goalsDeleted', 'true');
+  setGoalsDeletedFlag: async (deleted: { name: string; status: 'achieved' | 'expired' }[]) => {
+    if (deleted.length > 0) {
+      await SecureStore.setItemAsync('goalsDeleted', JSON.stringify(deleted));
     } else {
       await SecureStore.deleteItemAsync('goalsDeleted');
     }
@@ -101,7 +109,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   getGoalsDeletedFlag: async () => {
     const value = await SecureStore.getItemAsync('goalsDeleted');
-    return value === 'true';
+    return value ? JSON.parse(value) : null;
   },
 
   clearGoalsDeletedFlag: async () => {

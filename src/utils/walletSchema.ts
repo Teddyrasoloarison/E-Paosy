@@ -24,6 +24,10 @@ export const walletSchema = z.object({
       .min(1, "Le jour doit être au moins 1")
       .max(31, "Le jour ne peut pas dépasser 31")
       .optional(),
+    paymentMonth: z.coerce.number()
+      .min(1, "Le mois doit être au moins 1")
+      .max(12, "Le mois ne peut pas dépasser 12")
+      .optional(),
   }).optional(),
 });
 
@@ -37,6 +41,10 @@ export const automaticIncomeSchema = z.object({
   paymentDay: z.coerce.number()
     .min(1, "Le jour doit être au moins 1")
     .max(31, "Le jour ne peut pas dépasser 31"),
+  paymentMonth: z.coerce.number()
+    .min(1, "Le mois doit être au moins 1")
+    .max(12, "Le mois ne peut pas dépasser 12")
+    .optional(),
 });
 
 // Génération des types TypeScript à partir des schémas

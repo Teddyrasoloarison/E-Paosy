@@ -236,9 +236,10 @@ export default function WalletList() {
                    <View style={[styles.incomeBadge, { backgroundColor: theme.success + '15' }]}>
                      <Ionicons name="checkmark-circle" size={14} color={theme.success} />
                      <Text style={[styles.incomeBadgeText, { color: theme.success }]}>
-                       {item.walletAutomaticIncome.type === 'DAILY' && `Revenu auto quotidien: ${item.walletAutomaticIncome.amount} Ar`}
-                       {item.walletAutomaticIncome.type === 'MENSUAL' && `Revenu auto mensuel: ${item.walletAutomaticIncome.amount} Ar`}
-                       {item.walletAutomaticIncome.type === 'YEARLY' && `Revenu auto annuel: ${item.walletAutomaticIncome.amount} Ar`}
+                       {item.walletAutomaticIncome.type === 'DAILY' ? `Revenu auto quotidien: ${item.walletAutomaticIncome.amount} Ar`
+                         : item.walletAutomaticIncome.type === 'MENSUAL' ? `Revenu auto mensuel: ${item.walletAutomaticIncome.amount} Ar`
+                         : item.walletAutomaticIncome.type === 'YEARLY' ? `Revenu auto annuel: ${item.walletAutomaticIncome.amount} Ar`
+                         : null}
                      </Text>
                    </View>
                 )}

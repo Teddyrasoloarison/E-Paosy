@@ -8,9 +8,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useState, useCallback } from 'react';
-import { 
-  BackHandler, Platform, ScrollView, StyleSheet, 
-  Switch, Text, TouchableOpacity, View, Modal 
+import {
+  BackHandler, Platform, ScrollView, StyleSheet,
+  Switch, Text, TextInput, TouchableOpacity, View, Modal, Alert
 } from 'react-native';
 
 interface ThemeState {
@@ -26,7 +26,6 @@ export default function ConfigurationScreen() {
   const toggleTheme = useThemeStore((state: ThemeState) => state.toggleTheme);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
-  // --- CONFIG NOTIFICATIONS (persistée dans le store) ---
   const notifConfig = useNotificationStore();
   const { wallets } = useWallets();
 
@@ -36,6 +35,17 @@ export default function ConfigurationScreen() {
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<ModalType>('currency');
+
+  // --- ÉTATS POUR SAISIE PERSONNALISÉE ---
+  const [customDays, setCustomDays] = useState('');
+  const [showCustomDays, setShowCustomDays] = useState(false);
+
+  const [customHour, setCustomHour] = useState('');
+  const [customMinute, setCustomMinute] = useState('');
+  const [showCustomHour, setShowCustomHour] = useState(false);
+
+  const [customRecurrenceDays, setCustomRecurrenceDays] = useState('');
+  const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
 
   // --- NAVIGATION & BIOMÉTRIE ---
   useFocusEffect(
@@ -54,8 +64,8 @@ export default function ConfigurationScreen() {
 
   const toggleBiometric = async (value: boolean) => {
     if (value) {
-      const result = await LocalAuthentication.authenticateAsync({ 
-        promptMessage: 'Confirmez votre identité pour activer le login' 
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirmez votre identité pour activer le login'
       });
       if (result.success) setIsBiometricEnabled(true);
     } else {
@@ -63,34 +73,85 @@ export default function ConfigurationScreen() {
     }
   };
 
-  // --- HELPER : Label de l'heure ---
+  // --- HELPERS AFFICHAGE ---
   const hourLabel = `${String(notifConfig.notificationHour).padStart(2, '0')}:${String(notifConfig.notificationMinute).padStart(2, '0')}`;
-
-  // --- HELPER : Label du wallet ciblé ---
   const walletLabel = notifConfig.walletId
     ? wallets.find(w => w.id === notifConfig.walletId)?.name ?? 'Inconnu'
     : 'Tous les wallets';
 
-  // --- COMPOSANT RÉUTILISABLE ---
-  const SettingItem = ({ icon, title, subtitle, onPress, rightElement }: any) => (
-    <TouchableOpacity 
-      style={[styles.settingItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.settingIcon, { backgroundColor: theme.primary + '15' }]}>
-        <Ionicons name={icon} size={20} color={theme.primary} />
-      </View>
-      <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, { color: theme.text }]}>{title}</Text>
-        {subtitle && <Text style={[styles.settingSubtitle, { color: theme.textSecondary }]}>{subtitle}</Text>}
-      </View>
-      {rightElement || <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />}
-    </TouchableOpacity>
-  );
+  // --- RESET DES CHAMPS CUSTOM à l'ouverture ---
+  const openModal = (type: ModalType) => {
+    setShowCustomDays(false);
+    setShowCustomHour(false);
+    setShowCustomRecurrence(false);
+    setCustomDays('');
+    setCustomHour('');
+    setCustomMinute('');
+    setCustomRecurrenceDays('');
+    setModalType(type);
+    setModalVisible(true);
+  };
 
-  // --- OPTIONS DES MODALS ---
-  const getModalOptions = (): string[] => {
+  const closeModal = () => {
+    setModalVisible(false);
+    setShowCustomDays(false);
+    setShowCustomHour(false);
+    setShowCustomRecurrence(false);
+  };
+
+  // --- VALIDATION HEURE PERSONNALISÉE ---
+  const applyCustomHour = () => {
+    const h = parseInt(customHour);
+    const m = parseInt(customMinute || '0');
+    if (isNaN(h) || h < 0 || h > 23) {
+      Alert.alert('Heure invalide', 'L\'heure doit être entre 0 et 23.');
+      return;
+    }
+    if (isNaN(m) || m < 0 || m > 59) {
+      Alert.alert('Minutes invalides', 'Les minutes doivent être entre 0 et 59.');
+      return;
+    }
+    notifConfig.setConfig({ notificationHour: h, notificationMinute: m });
+    closeModal();
+  };
+
+  // --- VALIDATION JOURS PERSONNALISÉS ---
+  const applyCustomDays = () => {
+    const days = parseInt(customDays);
+    if (isNaN(days) || days < 1 || days > 365) {
+      Alert.alert('Valeur invalide', 'Entrez un nombre de jours entre 1 et 365.');
+      return;
+    }
+    notifConfig.setConfig({ daysCount: days });
+    closeModal();
+  };
+
+  // --- VALIDATION RÉCURRENCE PERSONNALISÉE ---
+  const applyCustomRecurrence = () => {
+    const days = parseInt(customRecurrenceDays);
+    if (isNaN(days) || days < 1 || days > 365) {
+      Alert.alert('Valeur invalide', 'Entrez un intervalle entre 1 et 365 jours.');
+      return;
+    }
+    // On stocke la récurrence custom comme "Tous les X jours"
+    notifConfig.setConfig({ recurrence: `Tous les ${days} jours` as any });
+    closeModal();
+  };
+
+  // --- SÉLECTION OPTION STANDARD ---
+  const handleModalSelect = (item: string) => {
+    switch (modalType) {
+      case 'currency':   setCurrency(item); break;
+      case 'recurrence': notifConfig.setConfig({ recurrence: item as any }); break;
+      case 'days':       notifConfig.setConfig({ daysCount: parseInt(item) }); break;
+      case 'hour':       notifConfig.setConfig({ notificationHour: parseInt(item), notificationMinute: 0 }); break;
+      case 'wallet':     notifConfig.setConfig({ walletId: item === 'all' ? null : item }); break;
+    }
+    closeModal();
+  };
+
+  // --- OPTIONS STANDARD PAR TYPE ---
+  const getStandardOptions = (): string[] => {
     switch (modalType) {
       case 'currency':   return ['MGA', 'USD', 'EUR'];
       case 'recurrence': return ['Quotidienne', 'Hebdomadaire', 'Mensuelle'];
@@ -110,32 +171,45 @@ export default function ConfigurationScreen() {
     }
   };
 
-  const handleModalSelect = (item: string) => {
+  const getModalTitle = (): string => {
     switch (modalType) {
-      case 'currency':   setCurrency(item); break;
-      case 'recurrence': notifConfig.setConfig({ recurrence: item as any }); break;
-      case 'days':       notifConfig.setConfig({ daysCount: parseInt(item) }); break;
-      case 'hour':       notifConfig.setConfig({ notificationHour: parseInt(item), notificationMinute: 0 }); break;
-      case 'wallet':     notifConfig.setConfig({ walletId: item === 'all' ? null : item }); break;
+      case 'currency':   return 'Choisir la devise';
+      case 'recurrence': return 'Choisir la fréquence';
+      case 'days':       return 'Période de calcul';
+      case 'hour':       return 'Heure de notification';
+      case 'wallet':     return 'Wallet concerné';
+      default:           return '';
     }
-    setModalVisible(false);
   };
 
-  const openModal = (type: ModalType) => {
-    setModalType(type);
-    setModalVisible(true);
-  };
+  // --- COMPOSANT RÉUTILISABLE ---
+  const SettingItem = ({ icon, title, subtitle, onPress, rightElement }: any) => (
+    <TouchableOpacity
+      style={[styles.settingItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.settingIcon, { backgroundColor: theme.primary + '15' }]}>
+        <Ionicons name={icon} size={20} color={theme.primary} />
+      </View>
+      <View style={styles.settingContent}>
+        <Text style={[styles.settingTitle, { color: theme.text }]}>{title}</Text>
+        {subtitle && <Text style={[styles.settingSubtitle, { color: theme.textSecondary }]}>{subtitle}</Text>}
+      </View>
+      {rightElement || <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />}
+    </TouchableOpacity>
+  );
 
   return (
     <DashboardShell title="Configuration" subtitle="Paramètres de votre compte" icon="options-outline">
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        
+
         {/* SECTION 1 : APPAREIL & SÉCURITÉ */}
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>APPAREIL & SÉCURITÉ</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem 
-            icon="moon" 
-            title="Mode Sombre" 
+          <SettingItem
+            icon="moon"
+            title="Mode Sombre"
             subtitle={isDarkMode ? "Activé" : "Désactivé"}
             rightElement={
               <Switch
@@ -146,14 +220,14 @@ export default function ConfigurationScreen() {
               />
             }
           />
-          <SettingItem 
-            icon="finger-print" 
-            title="Login biométrique" 
+          <SettingItem
+            icon="finger-print"
+            title="Login biométrique"
             subtitle={isBiometricEnabled ? "Activé" : "Désactivé"}
             rightElement={
-              <Switch 
-                value={isBiometricEnabled} 
-                onValueChange={toggleBiometric} 
+              <Switch
+                value={isBiometricEnabled}
+                onValueChange={toggleBiometric}
                 trackColor={{ false: theme.border, true: theme.primary + '50' }}
                 thumbColor={isBiometricEnabled ? theme.primary : '#f4f3f4'}
               />
@@ -164,11 +238,9 @@ export default function ConfigurationScreen() {
         {/* SECTION 2 : NOTIFICATIONS PUSH */}
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>NOTIFICATIONS PUSH</Text>
         <View style={styles.settingsGroup}>
-
-          {/* Toggle ON/OFF global */}
-          <SettingItem 
-            icon="notifications-outline" 
-            title="Notifications activées" 
+          <SettingItem
+            icon="notifications-outline"
+            title="Notifications activées"
             subtitle={notifConfig.isEnabled ? "Activées" : "Désactivées"}
             rightElement={
               <Switch
@@ -179,31 +251,29 @@ export default function ConfigurationScreen() {
               />
             }
           />
-
-          {/* Options visibles seulement si activé */}
           {notifConfig.isEnabled && (
             <>
-              <SettingItem 
-                icon="time-outline" 
-                title="Récurrence" 
+              <SettingItem
+                icon="time-outline"
+                title="Récurrence"
                 subtitle={notifConfig.recurrence}
                 onPress={() => openModal('recurrence')}
               />
-              <SettingItem 
-                icon="calendar-outline" 
-                title="Période de calcul" 
+              <SettingItem
+                icon="calendar-outline"
+                title="Période de calcul"
                 subtitle={`${notifConfig.daysCount} jours`}
                 onPress={() => openModal('days')}
               />
-              <SettingItem 
-                icon="alarm-outline" 
-                title="Heure de notification" 
+              <SettingItem
+                icon="alarm-outline"
+                title="Heure de notification"
                 subtitle={hourLabel}
                 onPress={() => openModal('hour')}
               />
-              <SettingItem 
-                icon="wallet-outline" 
-                title="Wallet concerné" 
+              <SettingItem
+                icon="wallet-outline"
+                title="Wallet concerné"
                 subtitle={walletLabel}
                 onPress={() => openModal('wallet')}
               />
@@ -213,7 +283,7 @@ export default function ConfigurationScreen() {
 
         {notifConfig.isEnabled && (
           <Text style={[styles.hint, { color: theme.textTertiary }]}>
-            Vous recevrez le cumul de vos dépenses des {notifConfig.daysCount} derniers jours 
+            Vous recevrez le cumul de vos dépenses des {notifConfig.daysCount} derniers jours
             ({notifConfig.recurrence.toLowerCase()}) à {hourLabel} sur "{walletLabel}".
           </Text>
         )}
@@ -221,9 +291,9 @@ export default function ConfigurationScreen() {
         {/* SECTION 3 : PRÉFÉRENCES */}
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>PRÉFÉRENCES</Text>
         <View style={styles.settingsGroup}>
-          <SettingItem 
-            icon="cash-outline" 
-            title="Devise utilisée" 
+          <SettingItem
+            icon="cash-outline"
+            title="Devise utilisée"
             subtitle={currency}
             onPress={() => openModal('currency')}
           />
@@ -240,8 +310,8 @@ export default function ConfigurationScreen() {
               </Text>
             </View>
             {!isPremium && (
-              <TouchableOpacity 
-                style={[styles.premiumBtn, { backgroundColor: theme.primary }]} 
+              <TouchableOpacity
+                style={[styles.premiumBtn, { backgroundColor: theme.primary }]}
                 onPress={() => setIsPremium(true)}
               >
                 <Ionicons name="diamond" size={16} color="#FFFFFF" />
@@ -249,10 +319,10 @@ export default function ConfigurationScreen() {
               </TouchableOpacity>
             )}
             {isPremium && (
-               <View style={styles.premiumBadge}>
-                  <Ionicons name="star" size={16} color="#FFFFFF" />
-                  <Text style={styles.premiumBadgeText}>ACTIF</Text>
-               </View>
+              <View style={styles.premiumBadge}>
+                <Ionicons name="star" size={16} color="#FFFFFF" />
+                <Text style={styles.premiumBadgeText}>ACTIF</Text>
+              </View>
             )}
           </View>
         </View>
@@ -263,22 +333,17 @@ export default function ConfigurationScreen() {
           <Text style={[styles.appInfoVersion, { color: theme.textSecondary }]}>Version 1.0.0 - HEI Technology</Text>
         </View>
 
-        {/* MODAL UNIVERSELLE */}
+        {/* ===================== MODAL UNIVERSELLE ===================== */}
         <Modal visible={modalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>
-                {modalType === 'currency'   ? 'Choisir la devise' :
-                 modalType === 'recurrence' ? 'Choisir la fréquence' :
-                 modalType === 'days'       ? 'Période de calcul' :
-                 modalType === 'hour'       ? 'Heure de notification' :
-                                             'Wallet concerné'}
-              </Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{getModalTitle()}</Text>
 
-              {getModalOptions().map((item) => (
-                <TouchableOpacity 
-                  key={item} 
-                  style={[styles.modalOption, { borderBottomColor: theme.border }]} 
+              {/* OPTIONS STANDARD */}
+              {getStandardOptions().map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.modalOption, { borderBottomColor: theme.border }]}
                   onPress={() => handleModalSelect(item)}
                 >
                   <Text style={[styles.modalOptionText, { color: theme.text }]}>
@@ -287,7 +352,152 @@ export default function ConfigurationScreen() {
                 </TouchableOpacity>
               ))}
 
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelBtn}>
+              {/* ---- OPTION PERSONNALISÉE : JOURS ---- */}
+              {modalType === 'days' && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.modalOption, { borderBottomColor: theme.border }]}
+                    onPress={() => setShowCustomDays(!showCustomDays)}
+                  >
+                    <View style={styles.customOptionRow}>
+                      <Text style={[styles.modalOptionText, { color: theme.primary }]}>
+                        ✏️ Personnalisé...
+                      </Text>
+                      <Ionicons
+                        name={showCustomDays ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={theme.primary}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                  {showCustomDays && (
+                    <View style={styles.customInputBlock}>
+                      <Text style={[styles.customInputLabel, { color: theme.textSecondary }]}>
+                        Nombre de jours (1–365)
+                      </Text>
+                      <View style={styles.customInputRow}>
+                        <TextInput
+                          style={[styles.customInput, { borderColor: theme.primary, color: theme.text, backgroundColor: theme.background ?? '#F5F5F5' }]}
+                          keyboardType="numeric"
+                          placeholder="ex: 14"
+                          placeholderTextColor={theme.textTertiary}
+                          value={customDays}
+                          onChangeText={setCustomDays}
+                          maxLength={3}
+                        />
+                        <TouchableOpacity
+                          style={[styles.applyBtn, { backgroundColor: theme.primary }]}
+                          onPress={applyCustomDays}
+                        >
+                          <Text style={styles.applyBtnText}>Appliquer</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* ---- OPTION PERSONNALISÉE : HEURE ---- */}
+              {modalType === 'hour' && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.modalOption, { borderBottomColor: theme.border }]}
+                    onPress={() => setShowCustomHour(!showCustomHour)}
+                  >
+                    <View style={styles.customOptionRow}>
+                      <Text style={[styles.modalOptionText, { color: theme.primary }]}>
+                        ✏️ Heure personnalisée...
+                      </Text>
+                      <Ionicons
+                        name={showCustomHour ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={theme.primary}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                  {showCustomHour && (
+                    <View style={styles.customInputBlock}>
+                      <Text style={[styles.customInputLabel, { color: theme.textSecondary }]}>
+                        Heure (0–23) et minutes (0–59)
+                      </Text>
+                      <View style={styles.customInputRow}>
+                        <TextInput
+                          style={[styles.customInputSmall, { borderColor: theme.primary, color: theme.text, backgroundColor: theme.background ?? '#F5F5F5' }]}
+                          keyboardType="numeric"
+                          placeholder="HH"
+                          placeholderTextColor={theme.textTertiary}
+                          value={customHour}
+                          onChangeText={setCustomHour}
+                          maxLength={2}
+                        />
+                        <Text style={[styles.timeSeparator, { color: theme.text }]}>:</Text>
+                        <TextInput
+                          style={[styles.customInputSmall, { borderColor: theme.primary, color: theme.text, backgroundColor: theme.background ?? '#F5F5F5' }]}
+                          keyboardType="numeric"
+                          placeholder="MM"
+                          placeholderTextColor={theme.textTertiary}
+                          value={customMinute}
+                          onChangeText={setCustomMinute}
+                          maxLength={2}
+                        />
+                        <TouchableOpacity
+                          style={[styles.applyBtn, { backgroundColor: theme.primary }]}
+                          onPress={applyCustomHour}
+                        >
+                          <Text style={styles.applyBtnText}>Appliquer</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* ---- OPTION PERSONNALISÉE : RÉCURRENCE ---- */}
+              {modalType === 'recurrence' && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.modalOption, { borderBottomColor: theme.border }]}
+                    onPress={() => setShowCustomRecurrence(!showCustomRecurrence)}
+                  >
+                    <View style={styles.customOptionRow}>
+                      <Text style={[styles.modalOptionText, { color: theme.primary }]}>
+                        ✏️ Intervalle personnalisé...
+                      </Text>
+                      <Ionicons
+                        name={showCustomRecurrence ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={theme.primary}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                  {showCustomRecurrence && (
+                    <View style={styles.customInputBlock}>
+                      <Text style={[styles.customInputLabel, { color: theme.textSecondary }]}>
+                        Envoyer une notification tous les X jours
+                      </Text>
+                      <View style={styles.customInputRow}>
+                        <TextInput
+                          style={[styles.customInput, { borderColor: theme.primary, color: theme.text, backgroundColor: theme.background ?? '#F5F5F5' }]}
+                          keyboardType="numeric"
+                          placeholder="ex: 3"
+                          placeholderTextColor={theme.textTertiary}
+                          value={customRecurrenceDays}
+                          onChangeText={setCustomRecurrenceDays}
+                          maxLength={3}
+                        />
+                        <TouchableOpacity
+                          style={[styles.applyBtn, { backgroundColor: theme.primary }]}
+                          onPress={applyCustomRecurrence}
+                        >
+                          <Text style={styles.applyBtnText}>Appliquer</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </>
+              )}
+
+              <TouchableOpacity onPress={closeModal} style={styles.cancelBtn}>
                 <Text style={styles.cancelText}>Annuler</Text>
               </TouchableOpacity>
             </View>
@@ -323,11 +533,22 @@ const styles = StyleSheet.create({
   appInfo: { alignItems: 'center', padding: 25, borderRadius: 20, marginTop: 30, marginBottom: 40 },
   appInfoTitle: { fontSize: 18, fontWeight: '800', letterSpacing: 2 },
   appInfoVersion: { fontSize: 12, marginTop: 4 },
+  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '85%', borderRadius: 24, padding: 24, elevation: 10 },
+  modalContent: { width: '88%', borderRadius: 24, padding: 24, elevation: 10 },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center' },
   modalOption: { paddingVertical: 16, borderBottomWidth: 1 },
   modalOptionText: { fontSize: 16, textAlign: 'center', fontWeight: '500' },
   cancelBtn: { marginTop: 15, padding: 10 },
   cancelText: { color: '#EF4444', textAlign: 'center', fontWeight: '700' },
+  // Personnalisé inline
+  customOptionRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  customInputBlock: { paddingVertical: 14, paddingHorizontal: 4, gap: 8 },
+  customInputLabel: { fontSize: 12, marginBottom: 6, textAlign: 'center' },
+  customInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  customInput: { flex: 1, borderWidth: 1.5, borderRadius: 10, padding: 10, fontSize: 16, textAlign: 'center' },
+  customInputSmall: { width: 56, borderWidth: 1.5, borderRadius: 10, padding: 10, fontSize: 16, textAlign: 'center' },
+  timeSeparator: { fontSize: 22, fontWeight: 'bold' },
+  applyBtn: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 10 },
+  applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

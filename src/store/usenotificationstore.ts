@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
 
-// Storage compatible Expo Go (contrairement à AsyncStorage qui nécessite un build natif)
+// Storage compatible Expo Go
 const secureStorage = {
   getItem: async (key: string): Promise<string | null> => {
     try {
@@ -27,15 +27,16 @@ const secureStorage = {
   },
 };
 
-export type Recurrence = 'Quotidienne' | 'Hebdomadaire' | 'Mensuelle';
+// Récurrence : valeurs standard + "Tous les X jours" pour le custom
+export type Recurrence = 'Quotidienne' | 'Hebdomadaire' | 'Mensuelle' | string;
 
 export interface NotificationConfig {
   isEnabled: boolean;
   recurrence: Recurrence;
-  daysCount: number;          // Période de calcul des dépenses (7, 30, 90 jours)
-  notificationHour: number;   // Heure d'envoi (ex: 20 = 20h00)
-  notificationMinute: number;
-  walletId: string | null;    // null = tous les wallets
+  daysCount: number;           // Période de calcul des dépenses (1–365 jours)
+  notificationHour: number;    // Heure d'envoi (0–23)
+  notificationMinute: number;  // Minutes (0–59)
+  walletId: string | null;     // null = tous les wallets
 }
 
 interface NotificationStore extends NotificationConfig {

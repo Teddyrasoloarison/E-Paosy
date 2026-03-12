@@ -1,6 +1,8 @@
 import DashboardShell from '@/components/dashboard-shell';
 import { Colors } from '../../constants/color';
 import { useThemeStore } from '../../src/store/useThemeStore';
+import { useNotificationStore } from '../../src/store/usenotificationstore';
+import { useWallets } from '../../src/hooks/useWallets';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -15,22 +17,25 @@ interface ThemeState {
   isDarkMode: boolean;
   toggleTheme: () => void;
 }
+
+type ModalType = 'currency' | 'recurrence' | 'days' | 'hour' | 'wallet';
+
 export default function ConfigurationScreen() {
   const router = useRouter();
   const isDarkMode = useThemeStore((state: ThemeState) => state.isDarkMode);
   const toggleTheme = useThemeStore((state: ThemeState) => state.toggleTheme);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
-  // --- ÉTATS DE VOTRE LOGIQUE MÉTIER ---
+  // --- CONFIG NOTIFICATIONS (persistée dans le store) ---
+  const notifConfig = useNotificationStore();
+  const { wallets } = useWallets();
+
+  // --- ÉTATS LOCAUX ---
   const [isPremium, setIsPremium] = useState(false);
-  const [recurrence, setRecurrence] = useState('Quotidienne');
-  const [daysCount, setDaysCount] = useState(30);
   const [currency, setCurrency] = useState('MGA');
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
-  
-  // État pour la Modal Universelle
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'currency' | 'recurrence' | 'days'>('currency');
+  const [modalType, setModalType] = useState<ModalType>('currency');
 
   // --- NAVIGATION & BIOMÉTRIE ---
   useFocusEffect(
@@ -58,7 +63,15 @@ export default function ConfigurationScreen() {
     }
   };
 
-  // --- COMPOSANT REUTILISABLE STYLISÉ ---
+  // --- HELPER : Label de l'heure ---
+  const hourLabel = `${String(notifConfig.notificationHour).padStart(2, '0')}:${String(notifConfig.notificationMinute).padStart(2, '0')}`;
+
+  // --- HELPER : Label du wallet ciblé ---
+  const walletLabel = notifConfig.walletId
+    ? wallets.find(w => w.id === notifConfig.walletId)?.name ?? 'Inconnu'
+    : 'Tous les wallets';
+
+  // --- COMPOSANT RÉUTILISABLE ---
   const SettingItem = ({ icon, title, subtitle, onPress, rightElement }: any) => (
     <TouchableOpacity 
       style={[styles.settingItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -75,6 +88,43 @@ export default function ConfigurationScreen() {
       {rightElement || <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />}
     </TouchableOpacity>
   );
+
+  // --- OPTIONS DES MODALS ---
+  const getModalOptions = (): string[] => {
+    switch (modalType) {
+      case 'currency':   return ['MGA', 'USD', 'EUR'];
+      case 'recurrence': return ['Quotidienne', 'Hebdomadaire', 'Mensuelle'];
+      case 'days':       return ['7', '30', '90'];
+      case 'hour':       return ['7', '8', '12', '18', '19', '20', '21', '22'];
+      case 'wallet':     return ['all', ...wallets.map(w => w.id)];
+      default:           return [];
+    }
+  };
+
+  const getOptionLabel = (item: string): string => {
+    switch (modalType) {
+      case 'days':   return `${item} jours`;
+      case 'hour':   return `${String(item).padStart(2, '0')}:00`;
+      case 'wallet': return item === 'all' ? 'Tous les wallets' : (wallets.find(w => w.id === item)?.name ?? item);
+      default:       return item;
+    }
+  };
+
+  const handleModalSelect = (item: string) => {
+    switch (modalType) {
+      case 'currency':   setCurrency(item); break;
+      case 'recurrence': notifConfig.setConfig({ recurrence: item as any }); break;
+      case 'days':       notifConfig.setConfig({ daysCount: parseInt(item) }); break;
+      case 'hour':       notifConfig.setConfig({ notificationHour: parseInt(item), notificationMinute: 0 }); break;
+      case 'wallet':     notifConfig.setConfig({ walletId: item === 'all' ? null : item }); break;
+    }
+    setModalVisible(false);
+  };
+
+  const openModal = (type: ModalType) => {
+    setModalType(type);
+    setModalVisible(true);
+  };
 
   return (
     <DashboardShell title="Configuration" subtitle="Paramètres de votre compte" icon="options-outline">
@@ -111,25 +161,62 @@ export default function ConfigurationScreen() {
           />
         </View>
 
-        {/* SECTION 2 : NOTIFICATIONS PUSH (MÉTIER) */}
+        {/* SECTION 2 : NOTIFICATIONS PUSH */}
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>NOTIFICATIONS PUSH</Text>
         <View style={styles.settingsGroup}>
+
+          {/* Toggle ON/OFF global */}
           <SettingItem 
-            icon="time-outline" 
-            title="Récurrence" 
-            subtitle={recurrence}
-            onPress={() => { setModalType('recurrence'); setModalVisible(true); }}
+            icon="notifications-outline" 
+            title="Notifications activées" 
+            subtitle={notifConfig.isEnabled ? "Activées" : "Désactivées"}
+            rightElement={
+              <Switch
+                value={notifConfig.isEnabled}
+                onValueChange={(val) => notifConfig.setConfig({ isEnabled: val })}
+                trackColor={{ false: theme.border, true: theme.primary + '50' }}
+                thumbColor={notifConfig.isEnabled ? theme.primary : '#f4f3f4'}
+              />
+            }
           />
-          <SettingItem 
-            icon="calendar-outline" 
-            title="Jours à compter" 
-            subtitle={`${daysCount} jours`}
-            onPress={() => { setModalType('days'); setModalVisible(true); }}
-          />
+
+          {/* Options visibles seulement si activé */}
+          {notifConfig.isEnabled && (
+            <>
+              <SettingItem 
+                icon="time-outline" 
+                title="Récurrence" 
+                subtitle={notifConfig.recurrence}
+                onPress={() => openModal('recurrence')}
+              />
+              <SettingItem 
+                icon="calendar-outline" 
+                title="Période de calcul" 
+                subtitle={`${notifConfig.daysCount} jours`}
+                onPress={() => openModal('days')}
+              />
+              <SettingItem 
+                icon="alarm-outline" 
+                title="Heure de notification" 
+                subtitle={hourLabel}
+                onPress={() => openModal('hour')}
+              />
+              <SettingItem 
+                icon="wallet-outline" 
+                title="Wallet concerné" 
+                subtitle={walletLabel}
+                onPress={() => openModal('wallet')}
+              />
+            </>
+          )}
         </View>
-        <Text style={[styles.hint, { color: theme.textTertiary }]}>
-          Vous recevrez le cumul de vos dépenses des {daysCount} derniers jours ({recurrence.toLowerCase()}).
-        </Text>
+
+        {notifConfig.isEnabled && (
+          <Text style={[styles.hint, { color: theme.textTertiary }]}>
+            Vous recevrez le cumul de vos dépenses des {notifConfig.daysCount} derniers jours 
+            ({notifConfig.recurrence.toLowerCase()}) à {hourLabel} sur "{walletLabel}".
+          </Text>
+        )}
 
         {/* SECTION 3 : PRÉFÉRENCES */}
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>PRÉFÉRENCES</Text>
@@ -138,7 +225,7 @@ export default function ConfigurationScreen() {
             icon="cash-outline" 
             title="Devise utilisée" 
             subtitle={currency}
-            onPress={() => { setModalType('currency'); setModalVisible(true); }}
+            onPress={() => openModal('currency')}
           />
         </View>
 
@@ -176,33 +263,30 @@ export default function ConfigurationScreen() {
           <Text style={[styles.appInfoVersion, { color: theme.textSecondary }]}>Version 1.0.0 - HEI Technology</Text>
         </View>
 
-        {/* MODAL UNIVERSELLE (Design amélioré) */}
+        {/* MODAL UNIVERSELLE */}
         <Modal visible={modalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>
-                {modalType === 'currency' ? 'Choisir la devise' : 
-                 modalType === 'recurrence' ? 'Choisir la fréquence' : 'Période de calcul'}
+                {modalType === 'currency'   ? 'Choisir la devise' :
+                 modalType === 'recurrence' ? 'Choisir la fréquence' :
+                 modalType === 'days'       ? 'Période de calcul' :
+                 modalType === 'hour'       ? 'Heure de notification' :
+                                             'Wallet concerné'}
               </Text>
-              
-              {(modalType === 'currency' ? ['MGA', 'USD', 'EUR'] : 
-                modalType === 'recurrence' ? ['Quotidienne', 'Hebdomadaire', 'Mensuelle'] : 
-                ['7', '30', '90']).map((item) => (
+
+              {getModalOptions().map((item) => (
                 <TouchableOpacity 
                   key={item} 
                   style={[styles.modalOption, { borderBottomColor: theme.border }]} 
-                  onPress={() => { 
-                    if (modalType === 'currency') setCurrency(item);
-                    else if (modalType === 'recurrence') setRecurrence(item);
-                    else setDaysCount(parseInt(item));
-                    setModalVisible(false); 
-                  }}>
+                  onPress={() => handleModalSelect(item)}
+                >
                   <Text style={[styles.modalOptionText, { color: theme.text }]}>
-                    {modalType === 'days' ? `${item} jours` : item}
+                    {getOptionLabel(item)}
                   </Text>
                 </TouchableOpacity>
               ))}
-              
+
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelBtn}>
                 <Text style={styles.cancelText}>Annuler</Text>
               </TouchableOpacity>

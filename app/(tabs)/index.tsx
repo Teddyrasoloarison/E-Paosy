@@ -72,7 +72,7 @@ export default function WelcomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, footerFadeAnim, slideAnim]);
 
   const handleButtonPress = (scale: Animated.Value) => {
     Animated.sequence([

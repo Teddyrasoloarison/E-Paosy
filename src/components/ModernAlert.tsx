@@ -38,7 +38,7 @@ export function ModernAlertProvider() {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const show = (newOptions: ModernAlertOptions) => {
+  const show = React.useCallback((newOptions: ModernAlertOptions) => {
     setOptions(newOptions);
     setVisible(true);
 
@@ -58,7 +58,7 @@ export function ModernAlertProvider() {
         useNativeDriver: true,
       }),
     ]).start();
-  };
+  }, [scaleAnim, fadeAnim]);
 
   const handleClose = (callback?: () => void) => {
     Animated.parallel([
@@ -79,7 +79,7 @@ export function ModernAlertProvider() {
 
   React.useEffect(() => {
     globalAlertHandler = { show };
-  }, []);
+  }, [show]);
 
   if (!options) return null;
 

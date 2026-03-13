@@ -108,10 +108,6 @@ export default function EmpreinteScreen() {
     setIsSaving(true);
     try {
       // First, verify the password by attempting to sign in
-      const signInResponse = await authService.signIn({
-        username: username || '',
-        password: fingerprintPassword,
-      });
 
       if (isFingerprintEnabled) {
         // Activating fingerprint
@@ -144,7 +140,7 @@ export default function EmpreinteScreen() {
         setHasChanges(false);
         setFingerprintPassword('');
       }
-    } catch (error: any) {
+    } catch {
       showError(
         'Erreur d\'authentification',
         'Mot de passe incorrect. Veuillez réessayer.'

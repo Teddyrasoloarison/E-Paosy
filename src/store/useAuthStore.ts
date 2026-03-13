@@ -33,6 +33,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    // First, run the cleanup for goals
+    await useAuthStore.getState().deleteCompletedAndExpiredGoals();
+
+    // Then, clear session data
     await SecureStore.deleteItemAsync('userToken');
     await SecureStore.deleteItemAsync('accountId');
     await SecureStore.deleteItemAsync('username');

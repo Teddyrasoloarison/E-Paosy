@@ -7,7 +7,6 @@ import { Controller, useForm } from 'react-hook-form';
 import {
   BackHandler,
   Image,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -44,7 +43,7 @@ export default function SignInScreen() {
     if (token) {
       router.replace('/(tabs)/dashboard');
     }
-  }, [token]);
+  }, [router, token]);
 
   // Retour vers index (page d'accueil)
   useFocusEffect(

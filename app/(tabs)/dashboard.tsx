@@ -3,7 +3,6 @@ import { useTransactions } from '@/src/hooks/useTransactions';
 import { useWallets } from '@/src/hooks/useWallets';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
@@ -16,10 +15,9 @@ import { useAuthStore } from '../../src/store/useAuthStore';
 import { useThemeStore } from '../../src/store/useThemeStore';
 
 export default function DashboardScreen() {
-  const router = useRouter();
   const username = useAuthStore((state) => state.username);
   const { wallets } = useWallets();
-  const { transactions } = useTransactions();
+  useTransactions();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
@@ -38,7 +36,7 @@ export default function DashboardScreen() {
         Animated.timing(statsAnim, { toValue: 1, duration: 400, delay: 100, useNativeDriver: true }),
       ]),
     ]).start();
-  }, []);
+  }, [quickActionsAnim, statsAnim, welcomeAnim]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -74,15 +72,8 @@ export default function DashboardScreen() {
   
   const totalBalance = activeWallets.reduce((sum, w) => sum + (w.amount || 0), 0);
   const isNegativeBalance = totalBalance < 0;
-  const recentTransactionsCount = transactions.length;
 
   // Calculate total automatic income from active wallets with MENSUAL type
-  const totalAutomaticIncome = activeWallets.reduce((sum, w) => {
-    if (w.walletAutomaticIncome?.type === 'MENSUAL') {
-      return sum + (w.walletAutomaticIncome.amount || 0);
-    }
-    return sum;
-  }, 0);
 
   const handleNewTransaction = () => setTransactionModalVisible(true);
   const handleNewGoal = () => setGoalModalVisible(true);

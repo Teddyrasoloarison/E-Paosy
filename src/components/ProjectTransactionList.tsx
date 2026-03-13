@@ -28,9 +28,6 @@ export default function ProjectTransactionList({ project }: Props) {
   }, [selectedTransactionId, data]);
 
   // Clic sur la transaction -> Ouvre EditProjectTransactionModal
-  const handleTransactionPress = useCallback((transaction: ProjectTransaction) => {
-    setSelectedTransactionId(transaction.id);
-  }, []);
 
   const handleEditTransaction = useCallback((transaction: ProjectTransaction) => {
     setSelectedTransactionId(transaction.id);

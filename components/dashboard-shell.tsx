@@ -58,9 +58,9 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
   const handleLogout = async () => {
     // Delete completed/expired goals before logout
     try {
-      const deletedCount = await deleteCompletedAndExpiredGoals();
-      if (deletedCount > 0) {
-        console.log(`${deletedCount} objectif(s) atteint(s)/expiré(s) supprimé(s) lors de la déconnexion`);
+      const result = await deleteCompletedAndExpiredGoals();
+      if (result.deletedCount > 0) {
+        console.log(`${result.deletedCount} objectif(s) atteint(s)/expiré(s) supprimé(s) lors de la déconnexion`);
       }
     } catch (err) {
       console.error('Erreur lors de la suppression des objectifs:', err);

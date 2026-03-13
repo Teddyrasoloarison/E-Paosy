@@ -8,7 +8,7 @@ import { useModernAlert } from '../hooks/useModernAlert';
 import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
 import { AutomaticIncomeFrequencyType, Wallet, WalletType } from '../types/wallet';
-import { WalletFormData, walletSchema } from '../utils/walletSchema';
+import { walletSchema } from '../utils/walletSchema';
 
 interface Props {
   visible: boolean;

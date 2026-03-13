@@ -30,7 +30,6 @@ export default function TransactionList() {
   const [isScrollingDown, setIsScrollingDown] = useState(false);
   const paginationAnim = useRef(new Animated.Value(0)).current;
   const filterAnim = useRef(new Animated.Value(1)).current;
-  const flatListRef = useRef<FlatList>(null);
   const lastScrollY = useRef(0);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
@@ -162,7 +161,7 @@ export default function TransactionList() {
   // Initialiser l'animation au montage
   useEffect(() => {
     paginationAnim.setValue(0);
-  }, []);
+  }, [paginationAnim]);
 
   if (isLoading) {
     return (

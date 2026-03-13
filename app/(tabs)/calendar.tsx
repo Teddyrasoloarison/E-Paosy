@@ -4,8 +4,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { format, getDaysInMonth, startOfMonth, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import React, { useState, useCallback, useRef } from 'react';
-import { BackHandler, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList, ActivityIndicator, ScrollView, Animated } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { BackHandler, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList, ActivityIndicator, ScrollView } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useThemeStore } from '../../src/store/useThemeStore';
 import { useAuthStore } from '../../src/store/useAuthStore';
@@ -37,8 +37,6 @@ export default function CalendarScreen() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTransactions, setTotalTransactions] = useState(0);
-  const [isAtBottom, setIsAtBottom] = useState(false);
-  const paginationAnim = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
     React.useCallback(() => {

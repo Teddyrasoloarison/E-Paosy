@@ -28,7 +28,7 @@ export const useProjects = () => {
         try {
           const stats = await projectService.getProjectStatistics(accountId!, project.id);
           return { [project.id]: stats };
-        } catch (error) {
+        } catch {
           // En cas d'erreur, retourner des statistiques vides
           return { 
             [project.id]: {

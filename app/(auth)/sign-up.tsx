@@ -42,7 +42,7 @@ export default function SignUpScreen() {
     if (token) {
       router.replace('/(tabs)/dashboard');
     }
-  }, [token]);
+  }, [router, token]);
 
   useFocusEffect(
     React.useCallback(() => {

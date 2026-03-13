@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { AppState, AppStateStatus, PanResponder, View, ViewStyle } from 'react-native';
+import { AppState, AppStateStatus, PanResponder } from 'react-native';
 
 const INACTIVITY_TIMEOUT = 3000; // 3 seconds
 

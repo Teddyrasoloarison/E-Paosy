@@ -77,6 +77,7 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
           accountId: goal.accountId,
           startingDate: new Date(data.startingDate).toISOString(),
           endingDate: new Date(data.endingDate).toISOString(),
+          targetAmount: 0
         } 
       },
       {

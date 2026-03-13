@@ -18,7 +18,7 @@ interface Props {
 export const GoalCard = ({ goal, onPress }: Props) => {
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
-  const { archiveGoal, isArchiving } = useGoals();
+  const { archiveGoal } = useGoals();
   const { wallets } = useWallets();
   
   const [showEditModal, setShowEditModal] = useState(false);
@@ -55,7 +55,7 @@ export const GoalCard = ({ goal, onPress }: Props) => {
           { backgroundColor: theme.surface, borderColor: theme.border },
           (isCompleted || isExpired) && { opacity: 0.6, backgroundColor: theme.background }
         ]} 
-        onPress={onPress} 
+        onPress={isCompleted || isExpired ? undefined : onPress} 
         activeOpacity={0.7}
       >
         <View style={styles.header}>
@@ -102,15 +102,6 @@ export const GoalCard = ({ goal, onPress }: Props) => {
         </View>
 
         <View style={styles.actionRow}>
-          {!isCompleted && !isExpired && (
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: theme.primary + '15' }]} 
-              onPress={() => setShowEditModal(true)}
-            >
-              <Ionicons name="pencil" size={14} color={theme.primary} />
-              <Text style={[styles.actionText, { color: theme.primary }]}>Modifier</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: theme.error + '15' }]} 
             onPress={() => setShowDeleteModal(true)}

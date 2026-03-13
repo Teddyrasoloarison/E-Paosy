@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { 
   ActivityIndicator, 
   FlatList, 
@@ -33,9 +33,8 @@ export default function GoalList() {
   const [goalToDelete, setGoalToDelete] = useState<GoalItem | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [isScrollingDown, setIsScrollingDown] = useState(false);
-  const [showDeletedMessage, setShowDeletedMessage] = useState(false);
+  const [showDeletedMessage] = useState(false);
   const filterAnim = useRef(new Animated.Value(1)).current;
-  const flatListRef = useRef<FlatList>(null);
   const lastScrollY = useRef(0);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
@@ -45,7 +44,7 @@ export default function GoalList() {
   const clearGoalsDeletedFlag = useAuthStore((state) => state.clearGoalsDeletedFlag);
   const { show } = useModernAlert();
 
-  const { goals, isLoading, archiveGoal, deleteGoal, totalGoals, error, refetch } = useGoals(filters);
+  const { goals, isLoading, archiveGoal, totalGoals, error, refetch } = useGoals(filters);
 
   // Check if goals were deleted during logout and show message
   const hasCheckedDeletedFlag = useRef(false);
@@ -83,47 +82,6 @@ export default function GoalList() {
   }, [isFocused, getGoalsDeletedFlag, clearGoalsDeletedFlag, show]);
 
 
-  const hasAutoDeleted = useRef(false);
-
-  useEffect(() => {
-    if (!isFocused && goals.length > 0 && !hasAutoDeleted.current) {
-      // Identify completed or expired goals
-      const now = new Date();
-      const goalsToDelete = goals.filter((goal: GoalItem) => {
-        const isCompleted = goal.isCompleted === true;
-        const isExpired = new Date(goal.endingDate) < now;
-        return isCompleted || isExpired;
-      });
-
-      if (goalsToDelete.length > 0) {
-        hasAutoDeleted.current = true;
-        
-        // Delete all completed/expired goals
-        goalsToDelete.forEach((goal: GoalItem) => {
-          deleteGoal(
-            { walletId: goal.walletId, goalId: goal.id },
-            {
-              onSuccess: () => {
-                console.log(`Objectif "${goal.name}" supprimé automatiquement`);
-              },
-              onError: (err) => {
-                console.error(`Erreur suppression objectif ${goal.name}:`, err);
-              }
-            }
-          );
-        });
-
-        // Show message that goals were deleted
-        setShowDeletedMessage(true);
-        setTimeout(() => setShowDeletedMessage(false), 3000);
-      }
-    }
-
-    // Reset the flag when coming back to the tab
-    if (isFocused) {
-      hasAutoDeleted.current = false;
-    }
-  }, [isFocused, goals, deleteGoal]);
 
 
   // Debug: Log goal data when it changes
@@ -164,10 +122,6 @@ export default function GoalList() {
     setFilters({});
   };
 
-  const handleDeletePress = (item: GoalItem) => {
-    setGoalToDelete(item);
-    setDeleteModalVisible(true);
-  };
 
   const handleConfirmDelete = () => {
     if (goalToDelete) {

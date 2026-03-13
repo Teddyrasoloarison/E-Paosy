@@ -102,7 +102,7 @@ export default function AnimatedLogo({ showText = true, size = 'large' }: Animat
         }),
       ]),
     ]).start();
-  }, []);
+  }, [bgOpacity, bgScale, logoOpacity, logoScale, ringOpacity, ringScale, textOpacity, textTranslateY]);
 
   return (
     <View style={styles.container}>

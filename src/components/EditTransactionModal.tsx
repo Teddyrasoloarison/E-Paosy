@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
+import { useGoals } from '../hooks/useGoals';
 import { useLabels } from '../hooks/useLabels';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useTransactions } from '../hooks/useTransactions';
@@ -26,6 +27,9 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
+  const [walletIdForGoals, setWalletIdForGoals] = useState<string | undefined>();
+  const { goals: walletGoals, isLoading: isLoadingGoals } = useGoals({ walletId: walletIdForGoals, status: 'in_progress' });
+
   const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema) as any,
   });
@@ -44,9 +48,7 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
 
   useEffect(() => {
     if (visible && transaction) {
-      // Normalize type: trim + uppercase to avoid whitespace/case issues
       const normalizedType = String(transaction.type || '').trim().toUpperCase();
-      console.log('EditTransactionModal open - transaction.type:', JSON.stringify(transaction.type), 'normalized:', normalizedType);
       reset({
         description: transaction.description,
         amount: transaction.amount,
@@ -54,36 +56,46 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
         walletId: transaction.walletId,
         labels: transaction.labels && transaction.labels.length > 0 ? transaction.labels[0].id : '',
         date: transaction.date,
+        goalId: transaction.goalId || undefined, // Convert null to undefined
       });
+      if (normalizedType === 'IN') {
+        setWalletIdForGoals(transaction.walletId);
+      }
     }
   }, [transaction, visible, reset]);
 
   const selectedType = watch('type');
   const selectedLabel = watch('labels') || '';
   const selectedWalletId = watch('walletId');
+  const selectedGoalId = watch('goalId');
+
+  useEffect(() => {
+    if (selectedType === 'IN' && selectedWalletId) {
+      setWalletIdForGoals(selectedWalletId);
+    } else {
+      setWalletIdForGoals(undefined);
+      // Ne pas réinitialiser goalId si on change simplement de type
+      // L'utilisateur peut vouloir conserver son choix même en changeant de type
+      // setValue('goalId', undefined);
+    }
+  }, [selectedType, selectedWalletId, setValue]);
 
   const { success: showSuccess, error: showError } = useModernAlert();
 
   const onSubmit: SubmitHandler<TransactionFormData> = (data) => {
-    // Debug: log submitted form data
-    console.log('EditTransactionModal onSubmit - raw form data:', data);
-    // Ensure type is normalized before sending to backend
     const normalizedType = String(data.type || '').trim().toUpperCase();
     const finalType = normalizedType === 'IN' ? 'IN' : 'OUT';
-    // Keep form state consistent
     setValue('type', finalType);
-    console.log('EditTransactionModal onSubmit - normalized type:', finalType);
+
     updateTransaction(
       { 
         transactionId: transaction.id,
         walletId: data.walletId,
         data: {
-          description: data.description,
-          amount: data.amount,
+          ...data, // Send all form data
           type: finalType,
           labels: data.labels ? [{ id: data.labels }] : [],
           date: new Date(data.date).toISOString(),
-          walletId: data.walletId,
           accountId: transaction.accountId,
         } as any
       },
@@ -100,12 +112,52 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
   };
 
   const toggleLabel = (id: string) => {
-    // Only allow ONE label - if same label is clicked, deselect it
     if (selectedLabel === id) {
       setValue('labels', '');
     } else {
       setValue('labels', id);
     }
+  };
+
+  const toggleGoal = (id: string) => {
+    if (selectedGoalId === id) {
+      setValue('goalId', undefined);
+    } else {
+      setValue('goalId', id);
+    }
+  };
+
+  const renderGoalOptions = () => {
+    // Toujours afficher l'option "Aucun" en premier
+    const goalOptions = [
+      { id: 'none', name: 'Aucun', color: '#9CA3AF' },
+      ...walletGoals
+    ];
+
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorScroll}>
+        {goalOptions.map((g) => (
+          <TouchableOpacity
+            key={g.id}
+            style={[
+              styles.chip,
+              { backgroundColor: theme.background, borderColor: g.color, borderWidth: 1.5 },
+              selectedGoalId === g.id && { backgroundColor: g.color }
+            ]}
+            onPress={() => toggleGoal(g.id)}
+          >
+            <Ionicons 
+              name={g.id === 'none' ? "close-circle-outline" : "golf-outline"} 
+              size={14} 
+              color={selectedGoalId === g.id ? '#fff' : g.color} 
+            />
+            <Text style={{ color: selectedGoalId === g.id ? '#fff' : theme.text, marginLeft: 6 }}>
+              {g.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
   };
 
   return (
@@ -207,6 +259,18 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
                 );
               })}
             </ScrollView>
+
+            {/* Goal Selector (Conditional) */}
+            {selectedType === 'IN' && selectedWalletId && (
+              <>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Lier à un objectif (Optionnel)</Text>
+                {isLoadingGoals ? (
+                  <ActivityIndicator color={theme.primary} style={{ marginTop: 10 }} />
+                ) : (
+                  renderGoalOptions()
+                )}
+              </>
+            )}
 
             {/* Description */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Description</Text>

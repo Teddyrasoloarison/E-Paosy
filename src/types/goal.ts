@@ -1,7 +1,8 @@
 export interface GoalItem {
+  amount: number;
   id: string;
   name: string;
-  amount: number;
+  targetAmount: number;
   currentAmount: number; // Montant actuel épargnes pour cet objectif
   isCompleted: boolean; // Whether the goal has been completed
   startingDate: string;
@@ -15,7 +16,7 @@ export interface GoalItem {
 
 export interface GoalPayload {
   name: string;
-  amount: number;
+  targetAmount: number;
   startingDate: string;
   endingDate: string;
   color: string;

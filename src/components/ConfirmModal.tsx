@@ -60,7 +60,7 @@ export default function ConfirmModal({
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
     }
-  }, [visible]);
+  }, [fadeAnim, scaleAnim, visible]);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {

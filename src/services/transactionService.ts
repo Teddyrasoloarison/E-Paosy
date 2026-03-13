@@ -1,7 +1,6 @@
 import {
   PaginatedTransactions,
   TransactionFilters,
-  TransactionItem,
   TransactionPayload,
 } from "../types/transaction";
 import api from "./api";

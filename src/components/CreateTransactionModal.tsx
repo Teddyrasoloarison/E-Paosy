@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
@@ -10,8 +10,10 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { useGoals } from '../hooks/useGoals';
 import { LabelItem } from '../types/label';
 import { TransactionFormData, transactionSchema } from '../utils/transactionSchema';
+
 
 interface Props {
   visible: boolean;
@@ -26,6 +28,10 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
   const { success: showSuccess } = useModernAlert();
+  
+  const [walletIdForGoals, setWalletIdForGoals] = useState<string | undefined>();
+  const { goals: walletGoals, isLoading: isLoadingGoals } = useGoals({ walletId: walletIdForGoals, status: 'in_progress' });
+
 
   const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema) as any,
@@ -36,12 +42,24 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
       walletId: '',
       labels: '',
       date: new Date().toISOString(),
+      goalId: undefined,
     }
   });
 
   const selectedType = watch('type');
   const selectedLabel = watch('labels') || '';
   const selectedWalletId = watch('walletId');
+  const selectedGoalId = watch('goalId');
+  
+  useEffect(() => {
+    if (selectedType === 'IN' && selectedWalletId) {
+      setWalletIdForGoals(selectedWalletId);
+    } else {
+      setWalletIdForGoals(undefined); // Ceci va retirer le filtre et vider les 'walletGoals'
+      setValue('goalId', undefined); // Désélectionner l'objectif si on change de type ou de portefeuille
+    }
+  }, [selectedType, selectedWalletId, setValue]);
+
 
   const onSubmit: SubmitHandler<TransactionFormData> = (data) => {
     if (!accountId) return;
@@ -56,6 +74,7 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
         date: new Date(data.date).toISOString(),
         walletId: data.walletId,
         accountId: accountId,
+        goalId: data.goalId,
       }
     };
 
@@ -78,6 +97,47 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
     } else {
       setValue('labels', id);
     }
+  };
+  
+  const toggleGoal = (id: string) => {
+    if (selectedGoalId === id) {
+      setValue('goalId', undefined);
+    } else {
+      setValue('goalId', id);
+    }
+  };
+
+  const renderGoalOptions = () => {
+    // Toujours afficher l'option "Aucun" en premier
+    const goalOptions = [
+      { id: 'none', name: 'Aucun', color: '#9CA3AF' },
+      ...walletGoals
+    ];
+
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorScroll}>
+        {goalOptions.map((g) => (
+          <TouchableOpacity
+            key={g.id}
+            style={[
+              styles.chip,
+              { backgroundColor: theme.background, borderColor: g.color, borderWidth: 1.5 },
+              selectedGoalId === g.id && { backgroundColor: g.color }
+            ]}
+            onPress={() => toggleGoal(g.id)}
+          >
+            <Ionicons 
+              name={g.id === 'none' ? "close-circle-outline" : "golf-outline"} 
+              size={14} 
+              color={selectedGoalId === g.id ? '#fff' : g.color} 
+            />
+            <Text style={{ color: selectedGoalId === g.id ? '#fff' : theme.text, marginLeft: 6 }}>
+              {g.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
   };
 
   return (
@@ -199,6 +259,18 @@ export default function CreateTransactionModal({ visible, onClose }: Props) {
               })}
             </ScrollView>
             {errors.walletId && <Text style={[styles.errorText, { color: theme.error }]}>{errors.walletId.message}</Text>}
+
+            {/* Goal Selector (Conditional) */}
+            {selectedType === 'IN' && selectedWalletId && (
+              <>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Lier à un objectif (Optionnel)</Text>
+                {isLoadingGoals ? (
+                  <ActivityIndicator color={theme.primary} style={{ marginTop: 10 }} />
+                ) : (
+                  renderGoalOptions()
+                )}
+              </>
+            )}
 
             {/* Description */}
             <Text style={[styles.label, { color: theme.textSecondary }]}>Description</Text>

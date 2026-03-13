@@ -18,7 +18,7 @@ interface Props {
 }
 
 export default function EditProjectTransactionModal({ visible, onClose, project, transaction }: Props) {
-  const { updateTransaction, deleteTransaction, isUpdating, isDeleting } = useProjectTransactions(project.id);
+  const { updateTransaction, isUpdating, isDeleting } = useProjectTransactions(project.id);
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
   const { success: showSuccess, error: showError } = useModernAlert();
@@ -87,17 +87,6 @@ const onSubmit: SubmitHandler<ProjectTransactionFormData> = (data) => {
     });
   };
 
-  const handleDelete = () => {
-    deleteTransaction(transaction.id, {
-      onSuccess: () => {
-        showSuccess("Succès", "Transaction supprimée avec succès !");
-        onClose();
-      },
-      onError: (error: any) => {
-        showError("Erreur", error.response?.data?.message || "Erreur serveur");
-      }
-    });
-  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>

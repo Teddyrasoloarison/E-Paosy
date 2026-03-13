@@ -72,6 +72,7 @@ export default function CreateGoalModal({ visible, onClose }: Props) {
           accountId: accountId,
           startingDate: new Date(data.startingDate).toISOString(),
           endingDate: new Date(data.endingDate).toISOString(),
+          targetAmount: 0
         } 
       },
       {

@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { TransactionItem } from '../types/transaction';
 import { transactionService } from './transactionService';
 import { NotificationConfig } from '../store/usenotificationstore';
 

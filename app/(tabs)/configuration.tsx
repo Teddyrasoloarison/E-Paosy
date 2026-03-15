@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   BackHandler,
   Modal,
   Platform,
@@ -14,9 +15,14 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Colors } from "../../constants/colors";
+
+import { useAuthStore } from "../../src/store/useAuthStore";
+import { authService } from "../../src/services/authService";
+import { useModernAlert } from "../../src/hooks/useModernAlert";
+import { TextInput } from "react-native";
 
 import { useCurrencyStore } from "../../src/store/useCurrencyStore";
 import { useNotificationStore } from "../../src/store/useNotificationStore";
@@ -34,12 +40,23 @@ export default function ConfigurationScreen() {
   const currency = useCurrencyStore((state) => state.currency);
   const setCurrency = useCurrencyStore((state) => state.setCurrency);
 
-  // Local states
-  const [isPremium, setIsPremium] = useState(false);
+  const isPremium = useAuthStore((state) => state.isPremium);
+  const setIsPremium = useAuthStore((state) => state.setIsPremium);
+  const currentUsername = useAuthStore((state) => state.username);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<ModalType>("currency");
   const [showNotifications, setShowNotifications] = useState(false);
+  // Premium auth modal states
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+  const [premiumUsername, setPremiumUsername] = useState("");
+  const [premiumPassword, setPremiumPassword] = useState("");
+  const [showPremiumPassword, setShowPremiumPassword] = useState(false);
+  const [isPremiumLoading, setIsPremiumLoading] = useState(false);
+  const { error: showError } = useModernAlert();
+  
+  // Unsubscribe modal state
+  const [showUnsubscribeModal, setShowUnsubscribeModal] = useState(false);
 
   // Custom input states
   // Clock states for hour modal
@@ -54,6 +71,13 @@ export default function ConfigurationScreen() {
   useEffect(() => {
     setSelectedRecurrence(notifConfig.recurrence);
   }, [notifConfig.recurrence]);
+
+  // Load auth state on focus
+  useFocusEffect(
+    useCallback(() => {
+      useAuthStore.getState().loadStorage();
+    }, []),
+  );
 
   // Navigation & biometric
   useFocusEffect(
@@ -180,6 +204,37 @@ export default function ConfigurationScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       closeModal();
     }
+  };
+
+  const handleUnsubscribe = () => {
+    setShowUnsubscribeModal(true);
+  };
+
+  const confirmUnsubscribe = async () => {
+    setShowUnsubscribeModal(false);
+    try {
+      // Désactiver le statut premium
+      await setIsPremium(false);
+      // Afficher un message de confirmation
+      Alert.alert(
+        'Désabonnement confirmé',
+        'Votre abonnement PRO a été désactivé avec succès.',
+        [{ text: 'OK' }]
+      );
+      // Ajouter une légère vibration pour confirmer l'action
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Erreur lors du désabonnement:', error);
+      Alert.alert(
+        'Erreur',
+        'Une erreur est survenue lors de la désactivation de votre abonnement.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const cancelUnsubscribe = () => {
+    setShowUnsubscribeModal(false);
   };
 
   // Enhanced frequency options with previews and icons
@@ -412,19 +467,17 @@ export default function ConfigurationScreen() {
               </Text>
             </View>
             {isPremium ? (
-              <View
-                style={[
-                  styles.premiumBadge,
-                  { backgroundColor: "rgba(255,255,255,0.2)" },
-                ]}
+              <TouchableOpacity
+                style={[styles.premiumBtn, { backgroundColor: theme.primary }]}
+                onPress={handleUnsubscribe}
               >
-                <Ionicons name="star" size={16} color="#FFFFFF" />
-                <Text style={styles.premiumBadgeText}>ACTIF</Text>
-              </View>
+                <Ionicons name="close-circle" size={16} color="#FFFFFF" />
+                <Text style={styles.premiumBtnText}>Se désabonner</Text>
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={[styles.premiumBtn, { backgroundColor: theme.primary }]}
-                onPress={() => setIsPremium(true)}
+                onPress={() => setPremiumModalVisible(true)}
               >
                 <Ionicons name="diamond" size={16} color="#FFFFFF" />
                 <Text style={styles.premiumBtnText}>Premium</Text>
@@ -470,6 +523,118 @@ export default function ConfigurationScreen() {
             v1.0.0
           </Text>
         </View>
+
+        {/* PREMIUM AUTH MODAL */}
+        <Modal visible={premiumModalVisible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View
+              style={[styles.premiumModalContent, { backgroundColor: theme.surface }]}
+            >
+              <Text style={[styles.premiumModalTitle, { color: theme.text }]}>
+                Authentification Premium
+              </Text>
+              <Text style={[styles.premiumModalSubtitle, { color: theme.textSecondary }]}>
+                Veuillez saisir vos identifiants pour activer le statut PRO
+              </Text>
+
+              <View style={[styles.inputGroup, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+                <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  placeholder="Nom d'utilisateur"
+                  placeholderTextColor={theme.textTertiary}
+                  value={premiumUsername}
+                  onChangeText={setPremiumUsername}
+                  autoCapitalize="none"
+                  editable={!isPremiumLoading}
+                />
+              </View>
+
+              <View style={[styles.inputGroup, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+                <Ionicons name="lock-closed-outline" size={20} color={theme.textSecondary} />
+                <TextInput
+                  style={[styles.input, { color: theme.text }]}
+                  placeholder="Mot de passe"
+                  placeholderTextColor={theme.textTertiary}
+                  secureTextEntry={!showPremiumPassword}
+                  value={premiumPassword}
+                  onChangeText={setPremiumPassword}
+                  editable={!isPremiumLoading}
+                />
+                <TouchableOpacity onPress={() => setShowPremiumPassword((prev) => !prev)}>
+                  <Ionicons
+                    name={showPremiumPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={theme.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.premiumModalButtons}>
+                <TouchableOpacity
+                  style={[styles.premiumModalButton, { backgroundColor: theme.primary }, isPremiumLoading && styles.buttonDisabled]}
+                  onPress={async () => {
+                    if (!premiumUsername || !premiumPassword) {
+                      showError("Erreur", "Veuillez saisir vos identifiants");
+                      return;
+                    }
+                    
+                    // Vérification du nom d'utilisateur actuel
+                    if (premiumUsername !== currentUsername) {
+                      showError(
+                        "Erreur d'authentification",
+                        "Vous ne pouvez activer le statut premium qu'avec votre propre compte. Veuillez saisir votre nom d'utilisateur actuel."
+                      );
+                      return;
+                    }
+                    
+                    setIsPremiumLoading(true);
+                    try {
+                      // Authenticate with the provided credentials
+                      const response = await authService.signIn({
+                        username: premiumUsername,
+                        password: premiumPassword
+                      });
+                      // If authentication succeeds, set premium status
+                      await setIsPremium(true);
+                      setPremiumModalVisible(false);
+                      setPremiumUsername("");
+                      setPremiumPassword("");
+                      setShowPremiumPassword(false);
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    } catch (error: any) {
+                      showError(
+                        "Erreur d'authentification",
+                        error.response?.data?.message || "Identifiants incorrects"
+                      );
+                    } finally {
+                      setIsPremiumLoading(false);
+                    }
+                  }}
+                  disabled={isPremiumLoading}
+                >
+                  <Text style={styles.premiumModalButtonText}>
+                    {isPremiumLoading ? "Authentification..." : "Confirmer"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.premiumModalCancelButton, { borderColor: theme.border }]}
+                  onPress={() => {
+                    setPremiumModalVisible(false);
+                    setPremiumUsername("");
+                    setPremiumPassword("");
+                    setShowPremiumPassword(false);
+                  }}
+                >
+                  <Text style={[styles.premiumModalCancelText, { color: theme.textSecondary }]}>
+                    Annuler
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* UNIVERSAL MODAL */}
         <Modal visible={modalVisible} transparent animationType="fade">
@@ -708,6 +873,37 @@ export default function ConfigurationScreen() {
               )}
 
               {/* Duplicate Annuelle removed */}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal de confirmation de désabonnement */}
+        <Modal
+          visible={showUnsubscribeModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={cancelUnsubscribe}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.unsubscribeModalContainer}>
+              <Text style={styles.unsubscribeModalTitle}>Confirmation de désabonnement</Text>
+              <Text style={styles.unsubscribeModalMessage}>
+                Êtes-vous sûr de vouloir vous désabonner du statut PRO ?
+              </Text>
+              <View style={styles.unsubscribeModalButtons}>
+                <TouchableOpacity
+                  style={[styles.unsubscribeModalButton, styles.unsubscribeCancelButton]}
+                  onPress={cancelUnsubscribe}
+                >
+                  <Text style={styles.unsubscribeCancelButtonText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.unsubscribeModalButton, styles.unsubscribeConfirmButton]}
+                  onPress={confirmUnsubscribe}
+                >
+                  <Text style={styles.unsubscribeConfirmButtonText}>OK</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -1158,4 +1354,141 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
   },
+  // Premium modal styles
+  premiumModalContent: {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 24,
+    gap: 16,
+  },
+  premiumModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  premiumModalSubtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  premiumModalButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+  },
+  premiumModalButton: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#6366f1",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  premiumModalButtonText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  premiumModalCancelButton: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  premiumModalCancelText: {
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  // Input styles (shared with sign-in)
+  inputGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 56,
+    marginTop: 12,
+  },
+  input: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  // Unsubscribe modal styles
+  unsubscribeModalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  unsubscribeModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  unsubscribeModalMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  unsubscribeModalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  unsubscribeModalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  unsubscribeCancelButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  unsubscribeConfirmButton: {
+    backgroundColor: '#FF3B30',
+  },
+  unsubscribeCancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  unsubscribeConfirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });
+
+

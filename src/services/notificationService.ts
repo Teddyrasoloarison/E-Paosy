@@ -1,7 +1,9 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import { startOfDay, endOfDay } from 'date-fns';
-import { transactionService } from './transactionService';
+import * as Notifications from "expo-notifications";
+import { NotificationConfig } from "../store/useNotificationStore";
+
+import { endOfDay, startOfDay } from "date-fns";
+import { Platform } from "react-native";
+import { transactionService } from "./transactionService";
 
 // Configure how notifications are handled when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -24,27 +26,28 @@ export const notificationService = {
    * Request permissions to show notifications
    */
   async requestPermissions(): Promise<boolean> {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
-    if (existingStatus !== 'granted') {
+    if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get notification permissions');
+    if (finalStatus !== "granted") {
+      console.log("Failed to get notification permissions");
       return false;
     }
 
     // Set notification channel for Android
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('goal-notifications', {
-        name: 'Objectifs',
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("goal-notifications", {
+        name: "Objectifs",
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#E6F4FE',
-        sound: 'default',
+        lightColor: "#E6F4FE",
+        sound: "default",
       });
     }
 
@@ -58,7 +61,7 @@ export const notificationService = {
     goalId: string,
     goalName: string,
     targetAmount: number,
-    currentAmount: number
+    currentAmount: number,
   ): Promise<void> {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
@@ -70,8 +73,8 @@ export const notificationService = {
       content: {
         title,
         body,
-        data: { goalId, type: 'completed' },
-        sound: 'default',
+        data: { goalId, type: "completed" },
+        sound: "default",
       },
       trigger: null, // Send immediately
     });
@@ -84,7 +87,7 @@ export const notificationService = {
     goalId: string,
     goalName: string,
     daysRemaining: number,
-    targetAmount: number
+    targetAmount: number,
   ): Promise<void> {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
@@ -107,8 +110,8 @@ export const notificationService = {
       content: {
         title,
         body,
-        data: { goalId, type: 'deadline' },
-        sound: 'default',
+        data: { goalId, type: "deadline" },
+        sound: "default",
       },
       trigger: null,
     });
@@ -119,7 +122,7 @@ export const notificationService = {
    */
   async sendGoalExpiredNotification(
     goalId: string,
-    goalName: string
+    goalName: string,
   ): Promise<void> {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
@@ -131,8 +134,8 @@ export const notificationService = {
       content: {
         title,
         body,
-        data: { goalId, type: 'expired' },
-        sound: 'default',
+        data: { goalId, type: "expired" },
+        sound: "default",
       },
       trigger: null,
     });
@@ -150,7 +153,7 @@ export const notificationService = {
         title: content.title,
         body: content.body,
         data: content.data,
-        sound: 'default',
+        sound: "default",
       },
       trigger: null,
     });
@@ -163,19 +166,19 @@ export const notificationService = {
     await Notifications.cancelAllScheduledNotificationsAsync();
   },
 
-/**
+  /**
    * Get the notification categories (for handling notification taps)
    */
   async setNotificationCategories(): Promise<void> {
-    await Notifications.setNotificationCategoryAsync('goal', [
+    await Notifications.setNotificationCategoryAsync("goal", [
       {
-        identifier: 'view',
-        buttonTitle: 'Voir l\'objectif',
+        identifier: "view",
+        buttonTitle: "Voir l'objectif",
         options: { opensAppToForeground: true },
       },
       {
-        identifier: 'dismiss',
-        buttonTitle: 'Fermer',
+        identifier: "dismiss",
+        buttonTitle: "Fermer",
         options: { isDestructive: true },
       },
     ]);
@@ -189,13 +192,13 @@ export const notificationService = {
     if (!hasPermission) return false;
 
     // Set up a separate notification channel for daily expenses on Android
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('daily-expenses', {
-        name: 'Dépenses quotidiennes',
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("daily-expenses", {
+        name: "Dépenses quotidiennes",
         importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FFE4E1',
-        sound: 'default',
+        lightColor: "#FFE4E1",
+        sound: "default",
       });
     }
 
@@ -218,17 +221,20 @@ export const notificationService = {
 
       // Fetch today's expenses (type OUT) from all wallets
       const result = await transactionService.getTransactions(accountId, {
-        type: 'OUT',
+        type: "OUT",
         startingDate: startOfToday.toISOString(),
         endingDate: endOfToday.toISOString(),
         pageSize: 1000, // Get all transactions for the day
       });
 
       // Calculate total expenses
-      const totalExpenses = result.data.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const totalExpenses = result.data.reduce(
+        (sum, transaction) => sum + transaction.amount,
+        0,
+      );
 
       // Create the notification content
-      const title = 'Récapitulatif des dépenses 📊';
+      const title = "Récapitulatif des dépenses 📊";
       let body: string;
 
       if (totalExpenses === 0) {
@@ -241,31 +247,206 @@ export const notificationService = {
       const trigger: Notifications.DailyTriggerInput = {
         hour: 19,
         minute: 0,
-        type: Notifications.SchedulableTriggerInputTypes.DAILY
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
       };
 
       await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
-          data: { type: 'daily-expense', accountId },
-          sound: 'default',
+          data: { type: "daily-expense", accountId },
+          sound: "default",
         },
         trigger,
-        identifier: 'daily-expense-notification', // Fixed identifier to replace previous daily notification
+        identifier: "daily-expense-notification", // Fixed identifier to replace previous daily notification
       });
 
-      console.log('Daily expense notification scheduled for 19:00');
+      console.log("Daily expense notification scheduled for 19:00");
     } catch (error) {
-      console.error('Error scheduling daily expense notification:', error);
+      console.error("Error scheduling daily expense notification:", error);
     }
   },
 
   /**
    * Cancel the daily expense notification
    */
-  async cancelDailyExpenseNotification(): Promise<void> {
-    await Notifications.cancelScheduledNotificationAsync('daily-expense-notification');
+  async cancelExpenseSummaryNotification(): Promise<void> {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const expenseNotifs = scheduled.filter(
+      (n) => n.content.data?.type === "expense_summary",
+    );
+    await Promise.all(
+      expenseNotifs.map((n) =>
+        Notifications.cancelScheduledNotificationAsync(n.identifier),
+      ),
+    );
+  },
+
+  /**
+   * NEW: Schedule configurable expense summary notification
+   */
+  async scheduleExpenseSummaryNotification(
+    accountId: string,
+    config: NotificationConfig,
+  ): Promise<string | null> {
+    await this.cancelExpenseSummaryNotification();
+
+    if (!config.isEnabled) return null;
+
+    // Setup Android channel for expense notifications
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("expense-summary", {
+        name: "Résumé des dépenses",
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FFE4E1",
+        sound: "default",
+      });
+    }
+
+    const now = new Date();
+    const startingDate = new Date(now);
+    startingDate.setDate(startingDate.getDate() - config.daysCount);
+
+    try {
+      const transactions = await transactionService.getTransactions(accountId, {
+        startingDate: startingDate.toISOString(),
+        endingDate: now.toISOString(),
+        type: "OUT",
+        walletId: config.walletId || undefined,
+      });
+
+      const totalExpenses = transactions.data.reduce(
+        (sum, t) => sum + Math.abs(t.amount),
+        0,
+      );
+      const formattedAmount = totalExpenses.toLocaleString("fr-FR");
+      const trigger = this.buildTrigger(config);
+
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "💸 Résumé de vos dépenses",
+          body: this.buildNotificationBody(
+            totalExpenses,
+            formattedAmount,
+            config,
+          ),
+          data: {
+            type: "expense_summary",
+            totalExpenses,
+            daysCount: config.daysCount,
+            walletId: config.walletId,
+          },
+        },
+        trigger,
+      });
+
+      console.log(
+        `[Notification] Expense summary scheduled (id: ${notificationId}) - Total: ${formattedAmount} Ar`,
+      );
+      return notificationId;
+    } catch (error) {
+      console.error("[Notification] Error calculating expenses:", error);
+      return null;
+    }
+  },
+
+  async requestNotificationPermission(): Promise<boolean> {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    if (existingStatus === "granted") return true;
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === "granted";
+  },
+
+  // PRIVATE HELPERS
+
+  buildTrigger(
+    config: NotificationConfig,
+  ): Notifications.NotificationTriggerInput {
+    const { notificationHour, notificationMinute, recurrence } = config;
+
+    switch (recurrence) {
+      case "Quotidienne":
+        return {
+          hour: notificationHour,
+          minute: notificationMinute,
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        };
+      case "Hebdomadaire":
+        return {
+          weekday: 7, // Sunday
+          hour: notificationHour,
+          minute: notificationMinute,
+          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        };
+      case "Mensuelle":
+        return {
+          day: 28, // Safe end-of-month
+          hour: notificationHour,
+          minute: notificationMinute,
+          type: Notifications.SchedulableTriggerInputTypes.MONTHLY,
+        };
+      case "Annuelle":
+        return {
+          month: 11, // 0-indexed (December)
+          day: 31, 
+          hour: notificationHour,
+          minute: notificationMinute,
+          type: Notifications.SchedulableTriggerInputTypes.YEARLY,
+        } as Notifications.YearlyTriggerInput;
+      default:
+        return {
+          hour: notificationHour,
+          minute: notificationMinute,
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        };
+    }
+  },
+
+  buildNotificationBody(
+    total: number,
+    formattedAmount: string,
+    config: NotificationConfig,
+  ): string {
+    const periodLabel = this.getPeriodLabel(config);
+    const recurrenceEmoji = this.getRecurrenceEmoji(config.recurrence);
+
+    if (total === 0) {
+      return `Aucune dépense ${periodLabel}. 🎉`;
+    }
+
+    return `${recurrenceEmoji} Dépenses ${periodLabel}: ${formattedAmount} Ar`;
+  },
+
+  getPeriodLabel(config: NotificationConfig): string {
+    switch (config.recurrence) {
+      case "Quotidienne":
+        return config.daysCount === 1 ? "aujourd'hui" : "ces dernières 24h";
+      case "Hebdomadaire":
+        return "cette semaine";
+      case "Mensuelle":
+        return "ce mois";
+      case "Annuelle":
+        return "cette année";
+      default:
+        return `ces ${config.daysCount} derniers jours`;
+    }
+  },
+
+  getRecurrenceEmoji(recurrence: string): string {
+    switch (recurrence) {
+      case "Quotidienne":
+        return "📅";
+      case "Hebdomadaire":
+        return "📊";
+      case "Mensuelle":
+        return "📈";
+      case "Annuelle":
+        return "🎯";
+      default:
+        return "💸";
+    }
   },
 };
 

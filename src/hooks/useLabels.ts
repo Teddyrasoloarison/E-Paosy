@@ -92,7 +92,9 @@ export const useLabels = () => {
   return {
     ...query,
     // expose simplified list for components
-    labels: query.data?.values || [],
+    labels: (query.data?.values || []).filter((label): label is LabelItem =>
+      Boolean(label?.id),
+    ),
 
     createLabel: createMutation.mutate,
     updateLabel: updateMutation.mutate,

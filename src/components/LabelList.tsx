@@ -20,14 +20,19 @@ export default function LabelList() {
   // Sort labels by creation date (newest first)
   const sortedLabels = useMemo(() => {
     if (!labels) return [];
-    return [...labels].sort((a, b) => {
-      // If createdAt exists, use it for sorting (newest first)
-      if (a.createdAt && b.createdAt) {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-      // Fallback: use id for sorting (newest first based on UUID)
-      return b.id.localeCompare(a.id);
-    });
+    return [...labels]
+      .filter(item => item && item.id) // Filter out invalid items
+      .sort((a, b) => {
+        // Safe createdAt sorting (newest first)
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (dateA !== 0 || dateB !== 0) {
+          return dateB - dateA;
+        }
+        // Safe id fallback (ensure both ids exist)
+        if (!a.id || !b.id) return 0;
+        return b.id.localeCompare(a.id);
+      });
   }, [labels]);
 
   const { show } = useModernAlert();

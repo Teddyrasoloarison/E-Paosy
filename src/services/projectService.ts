@@ -179,8 +179,9 @@ export const projectService = {
   downloadStatisticsPDF: async (
     accountId: string,
     projectId: string,
+    currency: string,
   ): Promise<ArrayBuffer> => {
-    const currency = useCurrencyStore.getState().currency;
+    console.log("PDF API currency param:", currency);
     const response = await api.get(
       `/account/${accountId}/project/${projectId}/pdf/statistics?currency=${currency}`,
       {
@@ -194,8 +195,9 @@ export const projectService = {
   downloadInvoicePDF: async (
     accountId: string,
     projectId: string,
+    currency: string,
   ): Promise<ArrayBuffer> => {
-    const currency = useCurrencyStore.getState().currency;
+    console.log("PDF API currency param:", currency);
     const response = await api.get(
       `/account/${accountId}/project/${projectId}/pdf/invoice?currency=${currency}`,
       {

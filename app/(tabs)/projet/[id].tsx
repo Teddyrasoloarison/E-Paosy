@@ -119,10 +119,15 @@ export default function ProjectDetailScreen() {
           responseData = await projectService.downloadStatisticsPDF(
             accountId,
             id,
+            currency,
           );
           break;
         case "invoice":
-          responseData = await projectService.downloadInvoicePDF(accountId, id);
+          responseData = await projectService.downloadInvoicePDF(
+            accountId,
+            id,
+            currency,
+          );
           break;
         default:
           setDownloadingType(null);

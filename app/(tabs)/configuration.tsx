@@ -433,6 +433,7 @@ export default function ConfigurationScreen() {
             subtitle={currency}
             onPress={() => openModal("currency")}
           />
+          <SettingItem icon="bulb" title="Aide" subtitle="Détail sur l'application" />
         </View>
 
         {/* ABONNEMENT */}
@@ -484,24 +485,6 @@ export default function ConfigurationScreen() {
               </TouchableOpacity>
             )}
           </View>
-        </View>
-
-        {/* SUPPORT */}
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-          AIDE
-        </Text>
-        <View style={styles.settingsGroup}>
-          <SettingItem icon="language" title="Langue" subtitle="Français" />
-          <SettingItem
-            icon="help-circle"
-            title="Support"
-            subtitle="FAQ et contact"
-          />
-          <SettingItem
-            icon="document-text"
-            title="CGU"
-            subtitle="Conditions générales"
-          />
         </View>
 
         {/* APP INFO */}

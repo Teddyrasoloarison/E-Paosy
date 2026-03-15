@@ -433,7 +433,12 @@ export default function ConfigurationScreen() {
             subtitle={currency}
             onPress={() => openModal("currency")}
           />
-          <SettingItem icon="bulb" title="Aide" subtitle="Détail sur l'application" />
+          <SettingItem 
+            icon="bulb" 
+            title="Aide" 
+            subtitle="Détail sur l'application" 
+            onPress={() => router.push("/(tabs)/aide")}
+          />
         </View>
 
         {/* ABONNEMENT */}

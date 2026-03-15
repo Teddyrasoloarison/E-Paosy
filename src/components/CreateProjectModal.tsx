@@ -5,6 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useModernAlert } from '../hooks/useModernAlert';
+import { useCurrencyStore } from '../store/useCurrencyStore';
 import { useProjects } from '../hooks/useProjects';
 import { useThemeStore } from '../store/useThemeStore';
 import { ProjectFormData, projectSchema } from '../utils/projectSchema';
@@ -35,6 +36,7 @@ export default function CreateProjectModal({ visible, onClose }: Props) {
   const { createProject, isCreating } = useProjects();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const currency = useCurrencyStore((state) => state.currency);
   const { success: showSuccess, error: showError } = useModernAlert();
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState('folder');
@@ -171,7 +173,7 @@ export default function CreateProjectModal({ visible, onClose }: Props) {
             />
 
             {/* Initial Budget */}
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Budget initial (optionnel)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Budget initial ({currency})</Text>
             <Controller
               control={control}
               name="initialBudget"

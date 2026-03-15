@@ -14,10 +14,11 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { Colors } from "../../constants/colors";
 
+import { useCurrencyStore } from "../../src/store/useCurrencyStore";
 import { useNotificationStore } from "../../src/store/useNotificationStore";
 import { useThemeStore } from "../../src/store/useThemeStore";
 
@@ -30,6 +31,8 @@ export default function ConfigurationScreen() {
   const theme = isDarkMode ? Colors.dark : Colors.light;
 
   const notifConfig = useNotificationStore();
+  const currency = useCurrencyStore((state) => state.currency);
+  const setCurrency = useCurrencyStore((state) => state.setCurrency);
 
   // Local states
   const [isPremium, setIsPremium] = useState(false);
@@ -104,8 +107,8 @@ export default function ConfigurationScreen() {
   const handleModalSelect = (item: string) => {
     switch (modalType) {
       case "currency":
-        setIsPremium(true);
-        break; // Demo
+        setCurrency(item as "MGA" | "USD" | "EURO");
+        break;
       case "recurrence":
         const previousRecurrence = notifConfig.recurrence;
         notifConfig.setConfig({
@@ -130,7 +133,7 @@ export default function ConfigurationScreen() {
     if (modalType === "hour") return []; // No list for hour - clock only
     switch (modalType) {
       case "currency":
-        return ["MGA", "USD", "EUR"];
+        return ["MGA", "USD", "EURO"];
       case "recurrence":
         return frequencyOptions.map((opt) => opt.key);
       default:
@@ -150,7 +153,7 @@ export default function ConfigurationScreen() {
   const getModalTitle = (): string => {
     switch (modalType) {
       case "currency":
-        return "Devise";
+        return "Choisir la devise";
       case "recurrence":
         return "Fréquence des notifications";
       case "hour":
@@ -369,6 +372,12 @@ export default function ConfigurationScreen() {
             subtitle="Sécurisez votre compte"
             onPress={() => router.push("/(tabs)/empreinte")}
           />
+          <SettingItem
+            icon="cash-outline"
+            title="Devise utilisée"
+            subtitle={currency}
+            onPress={() => openModal("currency")}
+          />
         </View>
 
         {/* ABONNEMENT */}
@@ -471,7 +480,63 @@ export default function ConfigurationScreen() {
               <Text style={[styles.modalTitle, { color: theme.text }]}>
                 {getModalTitle()}
               </Text>
-              {modalType === "recurrence" ? (
+              {modalType === "currency" ? (
+                <View style={styles.currencyContainer}>
+                  {getStandardOptions().map((item) => {
+                    const isSelected = currency === item;
+                    return (
+                      <TouchableOpacity
+                        key={item}
+                        style={[
+                          styles.currencyOption,
+                          {
+                            borderColor: isSelected
+                              ? theme.primary
+                              : theme.border,
+                            borderWidth: isSelected ? 2 : 1,
+                            shadowColor: isSelected ? theme.primary : "#000",
+                            shadowOpacity: isSelected ? 0.3 : 0.1,
+                            shadowRadius: isSelected ? 10 : 4,
+                            elevation: isSelected ? 6 : 2,
+                          },
+                        ]}
+                        onPress={() => handleModalSelect(item)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.currencyOptionContent}>
+                          <View style={styles.currencyIcon}>
+                            <Ionicons
+                              name="cash-outline"
+                              size={24}
+                              color={theme.primary}
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              styles.currencyOptionTitle,
+                              {
+                                color: isSelected ? theme.primary : theme.text,
+                                backgroundColor: "transparent",
+                              },
+                            ]}
+                          >
+                            {getOptionLabel(item)}
+                          </Text>
+                          {isSelected && (
+                            <View style={styles.currencySelectedIndicator}>
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={24}
+                                color={theme.primary}
+                              />
+                            </View>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : modalType === "recurrence" ? (
                 <View style={styles.modernRecurrenceContainer}>
                   {frequencyOptions.map((option) => {
                     const isSelected = selectedRecurrence === option.key;
@@ -652,6 +717,16 @@ export default function ConfigurationScreen() {
 }
 
 const styles = StyleSheet.create({
+  modernPreferencesGroup: {
+    borderRadius: 16,
+    padding: 8,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
   container: {
     flex: 1,
     paddingTop: 8,
@@ -1019,5 +1094,68 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  // Currency styles
+  currencyContainer: {
+    gap: 12,
+  },
+  currencyOption: {
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  currencyOptionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  currencyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  currencyOptionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginLeft: 16,
+    flex: 1,
+  },
+  currencySelectedIndicator: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  currencyConfirmBtn: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  currencyConfirmBtnDisabled: {
+    backgroundColor: "#D1D5DB",
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  currencyConfirmBtnText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
 });

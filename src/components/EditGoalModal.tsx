@@ -9,6 +9,7 @@ import { useGoals } from '../hooks/useGoals';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
+import { useCurrencyStore } from '../store/useCurrencyStore';
 import { GoalItem } from '../types/goal';
 import { GoalFormData, goalSchema } from '../utils/goalSchema';
 
@@ -39,6 +40,7 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
   const { wallets } = useWallets();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const currency = useCurrencyStore((state) => state.currency);
 
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -141,7 +143,8 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
             {errors.name && <Text style={[styles.error, { color: theme.error }]}>{errors.name.message}</Text>}
 
             {/* Amount */}
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Montant a atteindre (Ar)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Montant a atteindre ({currency})</Text>
+
             <Controller
               control={control}
               name="amount"
@@ -285,7 +288,7 @@ export default function EditGoalModal({ visible, onClose, goal }: Props) {
               <View style={styles.previewContent}>
                 <Text style={[styles.previewName, { color: theme.text }]}>{goal.name || 'Objectif'}</Text>
                 <Text style={[styles.previewAmount, { color: selectedColor || theme.primary }]}>
-                  {(goal.currentAmount || 0).toLocaleString()} / {goal.amount.toLocaleString()} Ar
+                  {(goal.currentAmount || 0).toLocaleString()} / {goal.amount.toLocaleString()} {currency}
                 </Text>
               </View>
             </View>

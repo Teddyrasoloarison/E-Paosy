@@ -10,6 +10,7 @@ import { useModernAlert } from '../hooks/useModernAlert';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useThemeStore } from '../store/useThemeStore';
+import { useCurrencyStore } from '../store/useCurrencyStore';
 import { LabelItem } from '../types/label';
 import { TransactionFormData, TransactionItem } from '../types/transaction';
 import { transactionSchema } from '../utils/transactionSchema';
@@ -26,6 +27,7 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
   const { labels } = useLabels();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const currency = useCurrencyStore((state) => state.currency);
 
   const [walletIdForGoals, setWalletIdForGoals] = useState<string | undefined>();
   const { goals: walletGoals, isLoading: isLoadingGoals } = useGoals({ walletId: walletIdForGoals, status: 'in_progress' });
@@ -207,7 +209,10 @@ export default function EditTransactionModal({ visible, onClose, transaction }: 
             </View>
 
             {/* Amount */}
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Montant (Ar)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
+              Montant ({currency})
+            </Text>
+
             <Controller
               control={control}
               name="amount"

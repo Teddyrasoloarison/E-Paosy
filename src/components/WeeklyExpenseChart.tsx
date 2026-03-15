@@ -1,18 +1,22 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../constants/colors';
-import { TransactionItem } from '../types/transaction';
-import { useThemeStore } from '../store/useThemeStore';
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { Colors } from "../../constants/colors";
+import { useCurrencyStore } from "../store/useCurrencyStore";
+import { useThemeStore } from "../store/useThemeStore";
+import { TransactionItem } from "../types/transaction";
 
 interface WeeklyExpenseChartProps {
   transactions: TransactionItem[];
 }
 
-const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-export default function WeeklyExpenseChart({ transactions }: WeeklyExpenseChartProps) {
+export default function WeeklyExpenseChart({
+  transactions,
+}: WeeklyExpenseChartProps) {
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const currency = useCurrencyStore((state) => state.currency);
 
   // Get today's day index (0 = Monday, 6 = Sunday)
   const todayIndex = useMemo(() => {
@@ -44,17 +48,22 @@ export default function WeeklyExpenseChart({ transactions }: WeeklyExpenseChartP
       const transactionDate = new Date(transaction.date);
       const weekEnd = new Date(monday);
       weekEnd.setDate(monday.getDate() + 7);
-      
+
       if (transactionDate >= monday && transactionDate < weekEnd) {
-        const dayIndex = Math.floor((transactionDate.getTime() - monday.getTime()) / (1000 * 60 * 60 * 24));
-        
+        const dayIndex = Math.floor(
+          (transactionDate.getTime() - monday.getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+
         if (dayIndex >= 0 && dayIndex < 7) {
           const amount = Math.abs(Number(transaction.amount));
           // Normalize type: trim + uppercase to handle any whitespace/case differences
-          const normalizedType = String(transaction.type || '').trim().toUpperCase();
-          if (normalizedType === 'OUT') {
+          const normalizedType = String(transaction.type || "")
+            .trim()
+            .toUpperCase();
+          if (normalizedType === "OUT") {
             data[dayIndex].expense += amount;
-          } else if (normalizedType === 'IN') {
+          } else if (normalizedType === "IN") {
             data[dayIndex].income += amount;
           }
         }
@@ -65,12 +74,12 @@ export default function WeeklyExpenseChart({ transactions }: WeeklyExpenseChartP
   }, [transactions]);
 
   const maxExpense = useMemo(() => {
-    const max = Math.max(...weeklyData.map(d => d.expense));
+    const max = Math.max(...weeklyData.map((d) => d.expense));
     return max > 0 ? max : 100;
   }, [weeklyData]);
 
   const maxIncome = useMemo(() => {
-    const max = Math.max(...weeklyData.map(d => d.income));
+    const max = Math.max(...weeklyData.map((d) => d.income));
     return max > 0 ? max : 100;
   }, [weeklyData]);
 
@@ -81,26 +90,51 @@ export default function WeeklyExpenseChart({ transactions }: WeeklyExpenseChartP
   const todayIncome = weeklyData[todayIndex]?.income || 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.backgroundSecondary,
+          borderColor: theme.border,
+        },
+      ]}
+    >
       {/* Header with today's totals - Card Section */}
-      <View style={[styles.todayCard, { backgroundColor: isDarkMode ? '#1E1E1E' : '#F3F4F6', borderColor: isDarkMode ? '#333333' : '#E5E7EB' }]}>
-        <Text style={[styles.todayTitle, { color: theme.text }]}>Aujourd&apos;hui</Text>
+      <View
+        style={[
+          styles.todayCard,
+          {
+            backgroundColor: isDarkMode ? "#1E1E1E" : "#F3F4F6",
+            borderColor: isDarkMode ? "#333333" : "#E5E7EB",
+          },
+        ]}
+      >
+        <Text style={[styles.todayTitle, { color: theme.text }]}>
+          Aujourd&apos;hui
+        </Text>
 
         <View style={styles.totalRow}>
           <View style={styles.totalItem}>
-            <View style={[styles.totalDot, { backgroundColor: '#ef4444' }]} />
-            <Text style={[styles.totalLabel, { color: theme.textSecondary }]}>Depenses</Text>
-            <Text style={[styles.totalValue, { color: '#ef4444' }]}>{todayExpense.toLocaleString()} Ar</Text>
+            <View style={[styles.totalDot, { backgroundColor: "#ef4444" }]} />
+            <Text style={[styles.totalLabel, { color: theme.textSecondary }]}>
+              Depenses
+            </Text>
+            <Text style={[styles.totalValue, { color: "#ef4444" }]}>
+              {todayExpense.toLocaleString()} {currency}
+            </Text>
           </View>
 
           <View style={styles.totalItem}>
-            <View style={[styles.totalDot, { backgroundColor: '#22c55e' }]} />
-            <Text style={[styles.totalLabel, { color: theme.textSecondary }]}>Revenus</Text>
-            <Text style={[styles.totalValue, { color: '#22c55e' }]}>{todayIncome.toLocaleString()} Ar</Text>
+            <View style={[styles.totalDot, { backgroundColor: "#22c55e" }]} />
+            <Text style={[styles.totalLabel, { color: theme.textSecondary }]}>
+              Revenus
+            </Text>
+            <Text style={[styles.totalValue, { color: "#22c55e" }]}>
+              {todayIncome.toLocaleString()} {currency}
+            </Text>
           </View>
         </View>
       </View>
-
 
       {/* Chart Area */}
       <View style={styles.chartArea}>
@@ -110,33 +144,48 @@ export default function WeeklyExpenseChart({ transactions }: WeeklyExpenseChartP
             <View style={styles.barsContainer}>
               <View style={styles.barsSideBySide}>
                 <View style={styles.barWrapper}>
-                  <View 
+                  <View
                     style={[
-                      styles.bar, 
-                      { 
-                        height: `${(dayData.income / maxValue) * 100}%`, 
-                        backgroundColor: '#22c55e',
-                      }
-                    ]} 
+                      styles.bar,
+                      {
+                        height: `${(dayData.income / maxValue) * 100}%`,
+                        backgroundColor: "#22c55e",
+                      },
+                    ]}
                   />
                 </View>
                 <View style={styles.barWrapper}>
-                  <View 
+                  <View
                     style={[
-                      styles.bar, 
-                      { 
-                        height: `${(dayData.expense / maxValue) * 100}%`, 
-                        backgroundColor: '#ef4444',
-                      }
-                    ]} 
+                      styles.bar,
+                      {
+                        height: `${(dayData.expense / maxValue) * 100}%`,
+                        backgroundColor: "#ef4444",
+                      },
+                    ]}
                   />
                 </View>
               </View>
             </View>
-            
+
             {/* Day label with highlight for today */}
-            <View style={[styles.dayLabelContainer, index === todayIndex && { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}>
-              <Text style={[styles.dayLabel, { color: index === todayIndex ? theme.primary : theme.text }]}>{dayData.day}</Text>
+            <View
+              style={[
+                styles.dayLabelContainer,
+                index === todayIndex && {
+                  backgroundColor: theme.primary + "20",
+                  borderColor: theme.primary,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.dayLabel,
+                  { color: index === todayIndex ? theme.primary : theme.text },
+                ]}
+              >
+                {dayData.day}
+              </Text>
             </View>
           </View>
         ))}
@@ -144,7 +193,9 @@ export default function WeeklyExpenseChart({ transactions }: WeeklyExpenseChartP
 
       {/* Legend - Simplified */}
       <View style={[styles.legend, { borderTopColor: theme.border }]}>
-        <Text style={[styles.legendTitle, { color: theme.text }]}>Niveau de depense par jour en une semaine</Text>
+        <Text style={[styles.legendTitle, { color: theme.text }]}>
+          Niveau de depense par jour en une semaine
+        </Text>
       </View>
     </View>
   );
@@ -158,7 +209,7 @@ const styles = StyleSheet.create({
   },
 
   todayCard: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
     padding: 16,
     borderRadius: 12,
@@ -166,29 +217,24 @@ const styles = StyleSheet.create({
   },
 
   todayTitle: {
-
     fontSize: 16,
 
-    fontWeight: '700',
+    fontWeight: "700",
 
     marginBottom: 12,
-
   },
 
   totalRow: {
+    flexDirection: "row",
 
-    flexDirection: 'row',
+    justifyContent: "space-around",
 
-    justifyContent: 'space-around',
-
-    width: '100%',
-
+    width: "100%",
   },
 
   totalItem: {
-
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   totalDot: {
@@ -198,35 +244,35 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   totalValue: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   chartArea: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
     height: 140,
     paddingHorizontal: 4,
   },
   barColumn: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   barsContainer: {
     height: 100,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   barsSideBySide: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 3,
   },
   barWrapper: {
     width: 14,
-    height: '100%',
-    justifyContent: 'flex-end',
+    height: "100%",
+    justifyContent: "flex-end",
   },
   bar: {
     width: 14,
@@ -236,7 +282,7 @@ const styles = StyleSheet.create({
   dayLabel: {
     marginTop: 8,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   dayLabelContainer: {
     marginTop: 8,
@@ -244,16 +290,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   legend: {
     marginTop: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   legendTitle: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

@@ -10,6 +10,7 @@ import { useModernAlert } from '../hooks/useModernAlert';
 import { useWallets } from '../hooks/useWallets';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore } from '../store/useThemeStore';
+import { useCurrencyStore } from '../store/useCurrencyStore';
 import { GoalFormData, goalSchema } from '../utils/goalSchema';
 
 interface Props {
@@ -39,6 +40,7 @@ export default function CreateGoalModal({ visible, onClose }: Props) {
   const { wallets } = useWallets();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const currency = useCurrencyStore((state) => state.currency);
   const { success: showSuccess, error: showError } = useModernAlert();
 
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -137,7 +139,8 @@ export default function CreateGoalModal({ visible, onClose }: Props) {
             {errors.name && <Text style={[styles.error, { color: theme.error }]}>{errors.name.message}</Text>}
 
             {/* Amount */}
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Montant a atteindre (Ar)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Montant a atteindre ({currency})</Text>
+
             <Controller
               control={control}
               name="amount"

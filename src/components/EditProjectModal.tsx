@@ -6,6 +6,7 @@ import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, 
 import { Colors } from '../../constants/colors';
 import { useModernAlert } from '../hooks/useModernAlert';
 import { useProjects } from '../hooks/useProjects';
+import { useCurrencyStore } from '../store/useCurrencyStore';
 import { useThemeStore } from '../store/useThemeStore';
 import { Project } from '../types/project';
 import { ProjectFormData, projectSchema } from '../utils/projectSchema';
@@ -37,6 +38,7 @@ export default function EditProjectModal({ visible, onClose, project }: Props) {
   const { updateProject, isUpdating } = useProjects();
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
+  const currency = useCurrencyStore((state) => state.currency);
   const { success: showSuccess, error: showError } = useModernAlert();
   
   const [localColor, setLocalColor] = useState(project.color || PRESET_COLORS[0]);
@@ -193,7 +195,7 @@ export default function EditProjectModal({ visible, onClose, project }: Props) {
             />
 
             {/* Initial Budget */}
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Budget initial (optionnel)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Budget initial ({currency})</Text>
             <Controller
               control={control}
               name="initialBudget"

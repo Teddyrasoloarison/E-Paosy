@@ -1,15 +1,24 @@
-import { Colors } from '@/constants/colors';
-import { useModernAlert } from '@/src/hooks/useModernAlert';
-import { useAuthStore } from '@/src/store/useAuthStore';
-import { useThemeStore } from '@/src/store/useThemeStore';
-import { Ionicons } from '@expo/vector-icons';
-import { usePathname, useRouter } from 'expo-router';
-import React, { ReactNode, useMemo, useState } from 'react';
-import { Animated, Image, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from "@/constants/colors";
+import { useModernAlert } from "@/src/hooks/useModernAlert";
+import { useAuthStore } from "@/src/store/useAuthStore";
+import { useThemeStore } from "@/src/store/useThemeStore";
+import { Ionicons } from "@expo/vector-icons";
+import { usePathname, useRouter } from "expo-router";
+import React, { ReactNode, useMemo, useState } from "react";
+import {
+  Animated,
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Import logo image
-const logoEpaosy = require('../assets/images/logo-e-paosy-removebg.png');
+const logoEpaosy = require("../assets/images/logo-e-paosy-removebg.png");
 
 type MenuItem = {
   label: string;
@@ -18,13 +27,25 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Dashboard', route: '/(tabs)/dashboard', icon: 'bar-chart-outline' },
-  { label: 'Labels', route: '/(tabs)/label', icon: 'pricetags-outline' },
-  { label: 'Portefeuille', route: '/(tabs)/portefeuille', icon: 'wallet-outline' },
-  { label: 'Transactions', route: '/(tabs)/transaction', icon: 'swap-vertical-outline' },
-  { label: 'Objectifs', route: '/(tabs)/objectif', icon: 'trophy-outline' },
-  { label: 'Projets', route: '/(tabs)/projet', icon: 'flag-outline' },
-  { label: 'Configuration', route: '/(tabs)/configuration', icon: 'options-outline' },
+  { label: "Dashboard", route: "/(tabs)/dashboard", icon: "bar-chart-outline" },
+  { label: "Labels", route: "/(tabs)/label", icon: "pricetags-outline" },
+  {
+    label: "Portefeuille",
+    route: "/(tabs)/portefeuille",
+    icon: "wallet-outline",
+  },
+  {
+    label: "Transactions",
+    route: "/(tabs)/transaction",
+    icon: "swap-vertical-outline",
+  },
+  { label: "Objectifs", route: "/(tabs)/objectif", icon: "trophy-outline" },
+  { label: "Projets", route: "/(tabs)/projet", icon: "flag-outline" },
+  {
+    label: "Configuration",
+    route: "/(tabs)/configuration",
+    icon: "options-outline",
+  },
 ];
 
 interface DashboardShellProps {
@@ -35,17 +56,33 @@ interface DashboardShellProps {
   children: ReactNode;
 }
 
-export default function DashboardShell({ title, subtitle, icon, onIconPress, children }: DashboardShellProps) {
+export default function DashboardShell({
+  title,
+  subtitle,
+  icon,
+  onIconPress,
+  children,
+}: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const logout = useAuthStore((state) => state.logout);
-  const deleteCompletedAndExpiredGoals = useAuthStore((state) => state.deleteCompletedAndExpiredGoals);
+  const deleteCompletedAndExpiredGoals = useAuthStore(
+    (state) => state.deleteCompletedAndExpiredGoals,
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const { isDarkMode, toggleTheme } = useThemeStore();
   const { show } = useModernAlert();
+  const isPremium = useAuthStore((state) => state.isPremium);
 
   const theme = isDarkMode ? Colors.dark : Colors.light;
-  const activeRoute = useMemo(() => pathname?.replace(/\/+$/, '') || '', [pathname]);
+  const activeRoute = useMemo(
+    () => pathname?.replace(/\/+$/, "") || "",
+    [pathname],
+  );
+
+  const filteredMenuItems = MENU_ITEMS.filter(item => 
+    item.label !== 'Projets' || isPremium
+  );
 
   const handleNavigate = (route: string) => {
     setMenuOpen(false);
@@ -60,15 +97,17 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
     try {
       const result = await deleteCompletedAndExpiredGoals();
       if (result.deletedCount > 0) {
-        console.log(`${result.deletedCount} objectif(s) atteint(s)/expiré(s) supprimé(s) lors de la déconnexion`);
+        console.log(
+          `${result.deletedCount} objectif(s) atteint(s)/expiré(s) supprimé(s) lors de la déconnexion`,
+        );
       }
     } catch (err) {
-      console.error('Erreur lors de la suppression des objectifs:', err);
+      console.error("Erreur lors de la suppression des objectifs:", err);
     }
-    
+
     await logout();
     setMenuOpen(false);
-    router.replace('/(auth)/sign-in');
+    router.replace("/(auth)/sign-in");
   };
 
   const handleThemeToggle = async () => {
@@ -76,20 +115,28 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
       <View style={styles.headerRow}>
-        <TouchableOpacity 
-          onPress={() => setMenuOpen(true)} 
+        <TouchableOpacity
+          onPress={() => setMenuOpen(true)}
           style={[styles.menuButton, { backgroundColor: theme.surface }]}
         >
           <Ionicons name="menu-outline" size={24} color={theme.primary} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>{title}</Text>
-          {subtitle && <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>}
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            {title}
+          </Text>
+          {subtitle && (
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              {subtitle}
+            </Text>
+          )}
         </View>
         {icon && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.menuButton, { backgroundColor: theme.surface }]}
             onPress={onIconPress}
           >
@@ -102,72 +149,103 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
 
       {menuOpen && (
         <>
-          <Pressable style={styles.overlay} onPress={() => setMenuOpen(false)} />
-          <Animated.View style={[styles.drawer, { backgroundColor: theme.surface }]}>
+          <Pressable
+            style={styles.overlay}
+            onPress={() => setMenuOpen(false)}
+          />
+          <Animated.View
+            style={[styles.drawer, { backgroundColor: theme.surface }]}
+          >
             <View style={styles.drawerHeader}>
               <View style={styles.drawerTitleRow}>
-                <Image 
-                  source={logoEpaosy} 
+                <Image
+                  source={logoEpaosy}
                   style={styles.drawerLogo}
                   resizeMode="contain"
                 />
-                <Text style={[styles.drawerTitle, { color: theme.text }]}>E-PAOSY</Text>
+                <Text style={[styles.drawerTitle, { color: theme.text }]}>
+                  E-PAOSY
+                </Text>
               </View>
               <TouchableOpacity onPress={() => setMenuOpen(false)}>
-                <Ionicons name="close-outline" size={24} color={theme.textSecondary} />
+                <Ionicons
+                  name="close-outline"
+                  size={24}
+                  color={theme.textSecondary}
+                />
               </TouchableOpacity>
             </View>
 
             {/* Theme Toggle Button - Modern Style */}
             <TouchableOpacity
-              style={[styles.themeToggle, { backgroundColor: theme.backgroundSecondary }]}
+              style={[
+                styles.themeToggle,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
               onPress={handleThemeToggle}
               activeOpacity={0.7}
             >
               <View style={styles.themeToggleContent}>
-                <View style={[
-                  styles.themeIconContainer, 
-                  { backgroundColor: isDarkMode ? '#312E81' : '#FEF3C7' }
-                ]}>
-                  <Ionicons 
-                    name={isDarkMode ? 'moon' : 'sunny'} 
-                    size={18} 
-                    color={isDarkMode ? '#818CF8' : '#F59E0B'} 
+                <View
+                  style={[
+                    styles.themeIconContainer,
+                    { backgroundColor: isDarkMode ? "#312E81" : "#FEF3C7" },
+                  ]}
+                >
+                  <Ionicons
+                    name={isDarkMode ? "moon" : "sunny"}
+                    size={18}
+                    color={isDarkMode ? "#818CF8" : "#F59E0B"}
                   />
                 </View>
                 <View style={styles.themeTextContainer}>
-                  <Text style={[styles.themeToggleTitle, { color: theme.text }]}>
-                    {isDarkMode ? 'Mode Sombre' : 'Mode Clair'}
+                  <Text
+                    style={[styles.themeToggleTitle, { color: theme.text }]}
+                  >
+                    {isDarkMode ? "Mode Sombre" : "Mode Clair"}
                   </Text>
-                  <Text style={[styles.themeToggleSubtitle, { color: theme.textTertiary }]}>
-                    {isDarkMode ? 'Activé' : 'Désactivé'}
+                  <Text
+                    style={[
+                      styles.themeToggleSubtitle,
+                      { color: theme.textTertiary },
+                    ]}
+                  >
+                    {isDarkMode ? "Activé" : "Désactivé"}
                   </Text>
                 </View>
               </View>
-              <View style={[
-                styles.toggleSwitch, 
-                { backgroundColor: isDarkMode ? theme.primary : theme.border }
-              ]}>
-                <Animated.View style={[
-                  styles.toggleThumb,
-                  { 
-                    backgroundColor: '#FFFFFF',
-                    transform: [{ translateX: isDarkMode ? 18 : 2 }]
-                  }
-                ]} />
+              <View
+                style={[
+                  styles.toggleSwitch,
+                  {
+                    backgroundColor: isDarkMode ? theme.primary : theme.border,
+                  },
+                ]}
+              >
+                <Animated.View
+                  style={[
+                    styles.toggleThumb,
+                    {
+                      backgroundColor: "#FFFFFF",
+                      transform: [{ translateX: isDarkMode ? 18 : 2 }],
+                    },
+                  ]}
+                />
               </View>
             </TouchableOpacity>
 
-            <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+            <View
+              style={[styles.menuDivider, { backgroundColor: theme.border }]}
+            />
 
-            {MENU_ITEMS.map((item) => {
+{filteredMenuItems.map((item) => {
               const isActive = item.route === activeRoute;
               return (
                 <TouchableOpacity
                   key={item.route}
                   style={[
-                    styles.menuItem, 
-                    isActive && { backgroundColor: theme.primary + '15' }
+                    styles.menuItem,
+                    isActive && { backgroundColor: theme.primary + "15" },
                   ]}
                   onPress={() => handleNavigate(item.route)}
                 >
@@ -176,38 +254,53 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
                     size={20}
                     color={isActive ? theme.primary : theme.textSecondary}
                   />
-                  <Text style={[
-                    styles.menuText, 
-                    { color: isActive ? theme.primary : theme.text },
-                    isActive && styles.menuTextActive
-                  ]}>
+                  <Text
+                    style={[
+                      styles.menuText,
+                      { color: isActive ? theme.primary : theme.text },
+                      isActive && styles.menuTextActive,
+                    ]}
+                  >
                     {item.label}
                   </Text>
                   {isActive && (
-                    <View style={[styles.activeIndicator, { backgroundColor: theme.primary }]} />
+                    <View
+                      style={[
+                        styles.activeIndicator,
+                        { backgroundColor: theme.primary },
+                      ]}
+                    />
                   )}
                 </TouchableOpacity>
               );
             })}
 
-            <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+            <View
+              style={[styles.menuDivider, { backgroundColor: theme.border }]}
+            />
 
             <TouchableOpacity
               style={[styles.menuItem, styles.logoutItem]}
               onPress={() => {
                 show({
-                  title: 'Déconnexion',
-                  message: 'Voulez-vous vous déconnecter ?',
-                  type: 'confirm',
+                  title: "Déconnexion",
+                  message: "Voulez-vous vous déconnecter ?",
+                  type: "confirm",
                   buttons: [
-                    { text: 'Annuler', style: 'cancel' },
-                    { text: 'Oui', style: 'destructive', onPress: handleLogout },
+                    { text: "Annuler", style: "cancel" },
+                    {
+                      text: "Oui",
+                      style: "destructive",
+                      onPress: handleLogout,
+                    },
                   ],
                 });
               }}
             >
               <Ionicons name="log-out-outline" size={20} color={theme.error} />
-              <Text style={[styles.logoutText, { color: theme.error }]}>Se déconnecter</Text>
+              <Text style={[styles.logoutText, { color: theme.error }]}>
+                Se déconnecter
+              </Text>
             </TouchableOpacity>
 
             <View style={styles.drawerFooter}>
@@ -223,14 +316,14 @@ export default function DashboardShell({ title, subtitle, icon, onIconPress, chi
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     paddingTop: 20,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
     paddingHorizontal: 16,
   },
@@ -238,11 +331,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
         shadowRadius: 4,
@@ -254,12 +347,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
         shadowRadius: 4,
@@ -274,23 +367,23 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  headerTitle: { 
-    fontSize: 22, 
-    fontWeight: '700',
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
   },
-  subtitle: { 
-    fontSize: 13, 
+  subtitle: {
+    fontSize: 13,
     marginTop: 2,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
     zIndex: 150,
   },
   drawer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
@@ -300,7 +393,7 @@ const styles = StyleSheet.create({
     zIndex: 200,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 4, height: 0 },
         shadowOpacity: 0.15,
         shadowRadius: 12,
@@ -309,15 +402,15 @@ const styles = StyleSheet.create({
     }),
   },
   drawerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 20,
     paddingHorizontal: 4,
   },
   drawerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   drawerLogo: {
@@ -325,38 +418,38 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 8,
   },
-  drawerTitle: { 
-    fontSize: 20, 
-    fontWeight: '700',
+  drawerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
   },
   themeToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 12,
     borderRadius: 14,
     marginBottom: 8,
   },
   themeToggleContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   themeIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   themeTextContainer: {
     gap: 2,
   },
-  themeToggleTitle: { 
-    fontSize: 15, 
-    fontWeight: '600',
+  themeToggleTitle: {
+    fontSize: 15,
+    fontWeight: "600",
   },
-  themeToggleSubtitle: { 
+  themeToggleSubtitle: {
     fontSize: 12,
   },
   toggleSwitch: {
@@ -364,7 +457,7 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     padding: 2,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   toggleThumb: {
     width: 22,
@@ -376,40 +469,40 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 12,
     marginBottom: 4,
   },
-  menuText: { 
-    fontSize: 15, 
-    fontWeight: '500',
+  menuText: {
+    fontSize: 15,
+    fontWeight: "500",
     flex: 1,
   },
   menuTextActive: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   activeIndicator: {
     width: 4,
     height: 20,
     borderRadius: 2,
   },
-  logoutItem: { 
+  logoutItem: {
     marginTop: 8,
   },
-  logoutText: { 
-    fontSize: 15, 
-    fontWeight: '600',
+  logoutText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   drawerFooter: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 30,
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
   },
   footerText: {
     fontSize: 12,

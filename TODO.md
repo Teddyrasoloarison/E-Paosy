@@ -1,14 +1,33 @@
-# Notification Settings Verification
+# TODO: Fix Period-Based Expense Notifications
 
-## Steps completed:
+## Plan Breakdown (Approved by User)
 
-✅ Analyzed all relevant files with search_files and read_file
-✅ Verified notificationService.ts: correct triggers for all recurrences (daily/hour, weekly Sunday, monthly day28, annual Dec31)
-✅ Verified useNotificationStore.ts: config management with correct defaults and persistence
-✅ Verified useNotificationScheduler.ts: auto-scheduling on config changes
-✅ Verified configuration.tsx: UI exactly matches task (Recurrence options "Tous les jours"/hebdo/etc., hour picker)
-✅ Confirmed expense summary logic approximates periods correctly (daily:24h, weekly:7d, etc.)
+### Step 1: [PENDING] Update src/hooks/useNotificationScheduler.ts
 
-**Result**: Yes, the notification push and settings work very well as described!
+- Add full config deps to useEffect ([accountId, isEnabled, notificationHour, notificationMinute, recurrence, daysCount])
+- Cancel before re-schedule on config changes
+- Add debug logs
 
-## Final Status: Task Complete ✅
+### Step 2: [PENDING] Update src/store/useNotificationStore.ts
+
+- Change DEFAULT_CONFIG: notificationHour:7, notificationMinute:5
+
+### Step 3: [PENDING] Update src/services/notificationService.ts
+
+- Align notification text prefix to "Total des dépenses [period]: X Ar"
+- Improve period labels for multi-day quotidienne
+- Add debug logs
+
+### Step 4: [PENDING] Test & Verify
+
+- Restart app → Change periods/time in settings
+- Check console logs for re-scheduling
+- Verify notification texts match expectations (semaine/mois/année)
+- Test at 7h05 for quotidienne
+
+### Step 5: [PENDING] Complete
+
+- Update this TODO.md with ✓
+- attempt_completion
+
+Current Progress: Ready for Step 1 edits.

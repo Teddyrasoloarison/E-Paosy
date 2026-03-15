@@ -390,7 +390,7 @@ export const notificationService = {
       case "Annuelle":
         return {
           month: 11, // 0-indexed (December)
-          day: 31, 
+          day: 31,
           hour: notificationHour,
           minute: notificationMinute,
           type: Notifications.SchedulableTriggerInputTypes.YEARLY,
@@ -410,19 +410,23 @@ export const notificationService = {
     config: NotificationConfig,
   ): string {
     const periodLabel = this.getPeriodLabel(config);
-    const recurrenceEmoji = this.getRecurrenceEmoji(config.recurrence);
+    console.log(
+      `[NotificationService] Building body - period: "${periodLabel}", total: ${total} Ar`,
+    );
 
     if (total === 0) {
-      return `Aucune dépense ${periodLabel}. 🎉`;
+      return `Aucune dépense ${periodLabel.toLowerCase()}. 🎉`;
     }
 
-    return `${recurrenceEmoji} Dépenses ${periodLabel}: ${formattedAmount} Ar`;
+    return `Total des dépenses ${periodLabel.toLowerCase()}: ${formattedAmount} Ar`;
   },
 
   getPeriodLabel(config: NotificationConfig): string {
     switch (config.recurrence) {
       case "Quotidienne":
-        return config.daysCount === 1 ? "aujourd'hui" : "ces dernières 24h";
+        return config.daysCount === 1
+          ? "aujourd'hui"
+          : `ces ${config.daysCount} derniers jours`;
       case "Hebdomadaire":
         return "cette semaine";
       case "Mensuelle":

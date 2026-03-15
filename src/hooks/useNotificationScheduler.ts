@@ -11,9 +11,27 @@ import { useNotificationStore } from "../store/useNotificationStore";
 export function useNotificationScheduler() {
   const accountId = useAuthStore((state) => state.accountId);
   const isEnabled = useNotificationStore((state) => state.isEnabled);
+  const notificationHour = useNotificationStore(
+    (state) => state.notificationHour,
+  );
+  const notificationMinute = useNotificationStore(
+    (state) => state.notificationMinute,
+  );
+  const recurrence = useNotificationStore((state) => state.recurrence);
+  const daysCount = useNotificationStore((state) => state.daysCount);
 
   useEffect(() => {
+    console.log("[NotificationScheduler] Config changed:", {
+      accountId,
+      isEnabled,
+      notificationHour,
+      notificationMinute,
+      recurrence,
+      daysCount,
+    });
+
     if (!accountId || !isEnabled) {
+      console.log("[NotificationScheduler] Disabled - cancelling");
       notificationService.cancelExpenseSummaryNotification();
       return;
     }
@@ -26,14 +44,30 @@ export function useNotificationScheduler() {
         return;
       }
 
+      // Cancel any existing before re-scheduling
+      await notificationService.cancelExpenseSummaryNotification();
+
       // Fetch full config for scheduling
       const config = useNotificationStore.getState();
-      await notificationService.scheduleExpenseSummaryNotification(
-        accountId,
-        config,
+      console.log("[NotificationScheduler] Scheduling with config:", config);
+      const notificationId =
+        await notificationService.scheduleExpenseSummaryNotification(
+          accountId,
+          config,
+        );
+      console.log(
+        "[NotificationScheduler] Scheduled notification ID:",
+        notificationId,
       );
     };
 
     setupNotifications();
-  }, [accountId, isEnabled]);
+  }, [
+    accountId,
+    isEnabled,
+    notificationHour,
+    notificationMinute,
+    recurrence,
+    daysCount,
+  ]);
 }

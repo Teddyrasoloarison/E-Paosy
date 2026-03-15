@@ -37,6 +37,7 @@ export function useNotificationScheduler() {
     }
 
     const setupNotifications = async () => {
+      console.log("[NotificationScheduler] setupNotifications called");
       const hasPermission =
         await notificationService.requestNotificationPermission();
       if (!hasPermission) {
@@ -45,7 +46,9 @@ export function useNotificationScheduler() {
       }
 
       // Cancel any existing before re-scheduling
+      console.log("[NotificationScheduler] Calling cancel...");
       await notificationService.cancelExpenseSummaryNotification();
+      console.log("[NotificationScheduler] Cancel done");
 
       // Fetch full config for scheduling
       const config = useNotificationStore.getState();

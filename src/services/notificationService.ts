@@ -271,7 +271,13 @@ export const notificationService = {
    * Cancel the daily expense notification
    */
   async cancelExpenseSummaryNotification(): Promise<void> {
+    console.log("[NotificationService.cancel] Before cancel:");
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    console.log(
+      "[NotificationService.cancel] Found",
+      scheduled.length,
+      "scheduled",
+    );
     const expenseNotifs = scheduled.filter(
       (n) => n.content.data?.type === "expense_summary",
     );
@@ -306,15 +312,63 @@ export const notificationService = {
 
     const now = new Date();
     const startingDate = new Date(now);
-    startingDate.setDate(startingDate.getDate() - config.daysCount);
+
+    console.log("[NotificationService] Now:", now.toISOString());
+
+    // DEBUG: Log config
+    console.log("[NotificationService] Scheduling with config:", {
+      recurrence: config.recurrence,
+
+      hour: config.notificationHour,
+      minute: config.notificationMinute,
+      isEnabled: config.isEnabled,
+      walletId: config.walletId,
+      daysCount: config.daysCount,
+    });
+
+    // FIXED: Accurate period calculation based on recurrence
+    let periodDays: number;
+    switch (config.recurrence) {
+      case "Quotidienne":
+        periodDays = config.daysCount;
+        break;
+      case "Hebdomadaire":
+        periodDays = 7;
+        break;
+      case "Mensuelle":
+        periodDays = 30;
+        break;
+      case "Annuelle":
+        periodDays = 365;
+        break;
+      default:
+        periodDays = config.daysCount;
+    }
+    startingDate.setDate(now.getDate() - periodDays);
 
     try {
+      console.log(
+        "[NotificationService] Fetching OUT transactions from",
+        startingDate.toISOString(),
+        "to",
+        now.toISOString(),
+      );
+
+      // FIXED: Aggregate ALL wallets (omit walletId filter)
       const transactions = await transactionService.getTransactions(accountId, {
         startingDate: startingDate.toISOString(),
         endingDate: now.toISOString(),
         type: "OUT",
-        walletId: config.walletId || undefined,
+        pageSize: 9999, // DEBUG: Ensure all txns
+        // NO walletId - sums across ALL wallets
       });
+
+      console.log(
+        "[NotificationService] Fetched",
+        transactions.data.length,
+        "OUT transactions, total:",
+        transactions.data.reduce((sum, t) => sum + Math.abs(t.amount), 0),
+      );
 
       const totalExpenses = transactions.data.reduce(
         (sum, t) => sum + Math.abs(t.amount),
@@ -322,10 +376,20 @@ export const notificationService = {
       );
       const formattedAmount = totalExpenses.toLocaleString("fr-FR");
       const trigger = this.buildTrigger(config);
+      console.log(
+        "[NotificationService] Schedule trigger:",
+        JSON.stringify(trigger),
+      );
+
+      console.log(
+        "[NotificationService] Notification body:",
+        this.buildNotificationBody(totalExpenses, formattedAmount, config),
+      );
 
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: "💸 Résumé de vos dépenses",
+
           body: this.buildNotificationBody(
             totalExpenses,
             formattedAmount,
@@ -344,9 +408,29 @@ export const notificationService = {
       console.log(
         `[Notification] Expense summary scheduled (id: ${notificationId}) - Total: ${formattedAmount} Ar`,
       );
+
+      // DEBUG: Verify all scheduled
+      const allScheduled =
+        await Notifications.getAllScheduledNotificationsAsync();
+      console.log(
+        "[NotificationService] All scheduled notifications after:",
+        allScheduled.length,
+        "items",
+      );
+      const expenseOnes = allScheduled.filter(
+        (n) => n.content.data?.type === "expense_summary",
+      );
+      console.log(
+        "[NotificationService] Expense summary scheduled:",
+        expenseOnes.length > 0 ? expenseOnes[0].identifier : "none",
+      );
+
       return notificationId;
     } catch (error) {
-      console.error("[Notification] Error calculating expenses:", error);
+      console.error(
+        "[NotificationService] scheduleExpenseSummaryNotification FAILED:",
+        error,
+      );
       return null;
     }
   },

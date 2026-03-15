@@ -54,7 +54,7 @@ const DEFAULT_CONFIG: NotificationConfig = {
   daysCount: 1,
   notificationHour: 7,
   notificationMinute: 5,
-  walletId: null,
+  walletId: null, // FIXED: Notifications always use ALL wallets regardless of this value
 };
 
 export const useNotificationStore = create<NotificationStore>()(

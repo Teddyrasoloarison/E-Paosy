@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../../constants/colors";
+import { useLabelNameValidation } from "../hooks/useLabelNameValidation";
 import { useLabels } from "../hooks/useLabels";
 import { useModernAlert } from "../hooks/useModernAlert";
 import { useThemeStore } from "../store/useThemeStore";
@@ -25,7 +26,6 @@ import {
   LabelFormData,
   labelSchema,
 } from "../utils/labelSchema";
-import { useLabelNameValidation } from "../hooks/useLabelNameValidation";
 
 interface Props {
   visible: boolean;
@@ -77,6 +77,12 @@ export default function CreateLabelModal({ visible, onClose }: Props) {
   const { success: showSuccess, error: showError } = useModernAlert();
 
   const onSubmit = (data: LabelFormData) => {
+    const error = isNameTaken(data.name);
+    if (error) {
+      showError("Erreur", "Label non créé - nom déjà existant");
+      return;
+    }
+
     const payload = {
       ...data,
       iconRef: data.iconRef || "pricetag",

@@ -1,286 +1,513 @@
-import { Ionicons } from '@expo/vector-icons';
-import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../../constants/colors';
-import { useLabels } from '../hooks/useLabels';
-import { useModernAlert } from '../hooks/useModernAlert';
-import { useAuthStore } from '../store/useAuthStore';
-import { useThemeStore } from '../store/useThemeStore';
-import { LabelItem, LabelPayload } from '../types/label';
-import { LabelFormData, labelSchema, LABEL_ICONS, LABEL_COLORS } from '../utils/labelSchema';
+import { Ionicons } from "@expo/vector-icons";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import {
+  ActivityIndicator,
+  BackHandler,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Colors } from "../../constants/colors";
+import { useLabels } from "../hooks/useLabels";
+import { useModernAlert } from "../hooks/useModernAlert";
+import { useAuthStore } from "../store/useAuthStore";
+import { useThemeStore } from "../store/useThemeStore";
+import { LabelItem, LabelPayload } from "../types/label";
+import {
+  LABEL_COLORS,
+  LABEL_ICONS,
+  LabelFormData,
+  labelSchema,
+} from "../utils/labelSchema";
+import { useLabelNameValidation } from "../hooks/useLabelNameValidation";
 
 interface Props {
-    visible: boolean;
-    onClose: () => void;
-    label: LabelItem;
+  visible: boolean;
+  onClose: () => void;
+  label: LabelItem;
 }
 
 export default function EditLabelModal({ visible, onClose, label }: Props) {
-    const { updateLabel, isUpdating } = useLabels();
-    const accountId = useAuthStore((state) => state.accountId);
-    const isDarkMode = useThemeStore((state) => state.isDarkMode);
-    const theme = isDarkMode ? Colors.dark : Colors.light;
-    
-    const [showIconPicker, setShowIconPicker] = useState(false);
+  const { updateLabel, isUpdating } = useLabels();
+  const { isNameTaken } = useLabelNameValidation(label.id);
+  const accountId = useAuthStore((state) => state.accountId);
+  const isDarkMode = useThemeStore((state) => state.isDarkMode);
+  const theme = isDarkMode ? Colors.dark : Colors.light;
 
-    const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<LabelFormData>({
-        resolver: zodResolver(labelSchema),
-        defaultValues: {
-            name: label.name,
-            color: label.color,
-            iconRef: label.iconRef || 'pricetag',
-        }
-    });
+  const [showIconPicker, setShowIconPicker] = useState(false);
 
-    useEffect(() => {
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<LabelFormData>({
+    resolver: zodResolver(labelSchema),
+    defaultValues: {
+      name: label.name,
+      color: label.color,
+      iconRef: label.iconRef || "pricetag",
+    },
+  });
+
+  useEffect(() => {
+    if (visible) {
+      reset({
+        name: label.name,
+        color: label.color,
+        iconRef: label.iconRef || "pricetag",
+      });
+    }
+  }, [visible, label.id, label.name, label.color, label.iconRef, reset]);
+
+  // Handle hardware back button on Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
         if (visible) {
-            reset({
-                name: label.name,
-                color: label.color,
-                iconRef: label.iconRef || 'pricetag',
-            });
+          onClose();
+          return true;
         }
-    }, [visible, label.id, label.name, label.color, label.iconRef, reset]);
-
-    // Handle hardware back button on Android
-    useEffect(() => {
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (visible) {
-                onClose();
-                return true;
-            }
-            return false;
-        });
-        return () => backHandler.remove();
-    }, [visible, onClose]);
-
-    const selectedColor = watch('color');
-    const selectedIcon = watch('iconRef') || 'pricetag';
-    const labelName = watch('name');
-
-    // alert helpers must be obtained at top level of component
-    const { success: showSuccess, error: showError } = useModernAlert();
-
-    const onSubmit = (data: LabelFormData) => {
-        const payload: LabelPayload = {
-            name: data.name,
-            color: data.color,
-            iconRef: data.iconRef || 'pricetag',
-            accountId: accountId!
-        };
-
-        updateLabel(
-            {
-                labelId: label.id,
-                data: payload
-            },
-            {
-                onSuccess: () => {
-                    showSuccess("Succès", "Label mis à jour");
-                    onClose();
-                },
-                onError: (error: any) => {
-                    showError("Erreur", error.response?.data?.message || "Erreur de mise à jour");
-                }
-            }
-        );
-    };
-
-    const handleIconSelect = (icon: string) => {
-        setValue('iconRef', icon);
-        setShowIconPicker(false);
-    };
-
-    return (
-        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.overlay}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-            >
-                <View style={[styles.content, { backgroundColor: theme.surface }]}>
-                    <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
-                    <ScrollView 
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                        contentContainerStyle={styles.scrollContent}
-                    >
-                    <View style={styles.header}>
-                        <View style={[styles.titleIcon, { backgroundColor: selectedColor + '15' }]}>
-                            <Ionicons name={(selectedIcon as any) || 'pricetag'} size={24} color={selectedColor} />
-                        </View>
-                        <View style={styles.titleContent}>
-                            <Text style={[styles.title, { color: theme.text }]}>Modifier le Label</Text>
-                            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Mettez a jour les details</Text>
-                        </View>
-                        <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close-circle" size={28} color={theme.textTertiary} />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Name Field */}
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>Nom du label</Text>
-                    <Controller
-                        control={control}
-                        name="name"
-                        render={({ field: { onChange, value } }) => (
-                            <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
-                                <Ionicons name="pricetag-outline" size={20} color={selectedColor} />
-                                <TextInput
-                                    style={[styles.input, { color: theme.text }]}
-                                    placeholder="Ex: Alimentation"
-                                    placeholderTextColor={theme.textTertiary}
-                                    value={value}
-                                    onChangeText={onChange}
-                                />
-                            </View>
-                        )}
-                    />
-                    {errors.name && <Text style={[styles.errorText, { color: theme.error }]}>{errors.name.message}</Text>}
-
-                    {/* Icon Selector */}
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>Icône</Text>
-                    <TouchableOpacity
-                        style={[styles.iconSelector, { backgroundColor: theme.background, borderColor: theme.border }]}
-                        onPress={() => setShowIconPicker(!showIconPicker)}
-                    >
-                        <View style={[styles.selectedIconPreview, { backgroundColor: selectedColor + '20' }]}>
-                            <Ionicons name={(selectedIcon as any) || 'pricetag'} size={24} color={selectedColor} />
-                        </View>
-                        <Text style={[styles.iconSelectorText, { color: theme.text }]}>
-                            {selectedIcon || 'Sélectionner une icône'}
-                        </Text>
-                        <Ionicons name={showIconPicker ? 'chevron-up' : 'chevron-down'} size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-
-                    {/* Icon Picker */}
-                    {showIconPicker && (
-                        <View style={[styles.iconPicker, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                <View style={styles.iconGrid}>
-                                    {LABEL_ICONS.map((icon) => (
-                                        <TouchableOpacity
-                                            key={icon}
-                                            style={[
-                                                styles.iconOption,
-                                                selectedIcon === icon && { backgroundColor: selectedColor + '30' },
-                                                selectedIcon === icon && { borderColor: selectedColor }
-                                            ]}
-                                            onPress={() => handleIconSelect(icon)}
-                                        >
-                                            <Ionicons
-                                                name={icon as any}
-                                                size={22}
-                                                color={selectedIcon === icon ? selectedColor : theme.textSecondary}
-                                            />
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </ScrollView>
-                        </View>
-                    )}
-
-                    {/* Color Selector */}
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>Couleur</Text>
-                    <View style={styles.colorGrid}>
-                        {LABEL_COLORS.map((c) => (
-                            <TouchableOpacity
-                                key={c}
-                                style={[
-                                    styles.colorOption, 
-                                    { backgroundColor: c },
-                                    selectedColor === c && styles.colorSelected
-                                ]}
-                                onPress={() => setValue('color', c)}
-                            >
-                                {selectedColor === c && (
-                                    <Ionicons name="checkmark" size={18} color="#fff" />
-                                )}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    {/* Preview */}
-                    <View style={[styles.previewCard, { backgroundColor: selectedColor + '15', borderColor: selectedColor }]}>
-                        <View style={[styles.previewIcon, { backgroundColor: selectedColor }]}>
-                            <Ionicons name={(selectedIcon as any) || 'pricetag'} size={20} color="#fff" />
-                        </View>
-                        <View style={styles.previewContent}>
-                            <Text style={[styles.previewText, { color: theme.text }]}>
-                                {labelName || 'Apercu du label'}
-                            </Text>
-                            <Text style={[styles.previewSubtext, { color: theme.textSecondary }]}>
-                                Comment il apparaitra
-                            </Text>
-                        </View>
-                    </View>
-
-                    {/* Submit Button */}
-                    <TouchableOpacity
-                        style={[styles.submitBtn, { backgroundColor: selectedColor }, isUpdating && { opacity: 0.7 }]}
-                        onPress={handleSubmit(onSubmit)}
-                        disabled={isUpdating}
-                    >
-                        {isUpdating ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <View style={styles.submitContent}>
-                                <Ionicons name="checkmark-circle" size={22} color="#fff" />
-                                <Text style={styles.submitBtnText}>Enregistrer</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                    </ScrollView>
-                </View>
-            </KeyboardAvoidingView>
-        </Modal>
+        return false;
+      },
     );
+    return () => backHandler.remove();
+  }, [visible, onClose]);
+
+  const selectedColor = watch("color");
+  const selectedIcon = watch("iconRef") || "pricetag";
+  const labelName = watch("name");
+
+  // alert helpers must be obtained at top level of component
+  const { success: showSuccess, error: showError } = useModernAlert();
+
+const onSubmit = (data: LabelFormData) => {
+    const error = isNameTaken(data.name);
+    if (error) {
+      showError("Erreur", "Label non modifié - nom déjà existant");
+      return;
+    }
+
+    const payload: LabelPayload = {
+      name: data.name,
+      color: data.color,
+      iconRef: data.iconRef || "pricetag",
+      accountId: accountId!,
+    };
+
+    updateLabel(
+      {
+        labelId: label.id,
+        data: payload,
+      },
+      {
+        onSuccess: () => {
+          showSuccess("Succès", "Label mis à jour");
+          onClose();
+        },
+        onError: (error: any) => {
+          showError(
+            "Erreur",
+            error.response?.data?.message || "Erreur de mise à jour",
+          );
+        },
+      },
+    );
+  };
+
+  const handleIconSelect = (icon: string) => {
+    setValue("iconRef", icon);
+    setShowIconPicker(false);
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.overlay}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <View style={[styles.content, { backgroundColor: theme.surface }]}>
+          <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.header}>
+              <View
+                style={[
+                  styles.titleIcon,
+                  { backgroundColor: selectedColor + "15" },
+                ]}
+              >
+                <Ionicons
+                  name={(selectedIcon as any) || "pricetag"}
+                  size={24}
+                  color={selectedColor}
+                />
+              </View>
+              <View style={styles.titleContent}>
+                <Text style={[styles.title, { color: theme.text }]}>
+                  Modifier le Label
+                </Text>
+                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                  Mettez a jour les details
+                </Text>
+              </View>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons
+                  name="close-circle"
+                  size={28}
+                  color={theme.textTertiary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Name Field */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
+              Nom du label
+            </Text>
+            <Controller
+              control={control}
+              name="name"
+              render={({ field: { onChange, value } }) => (
+                <View
+                  style={[
+                    styles.inputContainer,
+                    { backgroundColor: theme.background },
+                  ]}
+                >
+                  <Ionicons
+                    name="pricetag-outline"
+                    size={20}
+                    color={selectedColor}
+                  />
+                  <TextInput
+                    style={[styles.input, { color: theme.text }]}
+                    placeholder="Ex: Alimentation"
+                    placeholderTextColor={theme.textTertiary}
+                    value={value}
+                    onChangeText={(text) => {
+                      onChange(text);
+                      const error = isNameTaken(text);
+                      if (error) {
+                        setError("name", { message: error });
+                      } else {
+                        clearErrors("name");
+                      }
+                    }}
+                  />
+                </View>
+              )}
+            />
+            {errors.name && (
+              <Text style={[styles.errorText, { color: theme.error }]}>
+                {errors.name.message}
+              </Text>
+            )}
+
+            {/* Icon Selector */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
+              Icône
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.iconSelector,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                },
+              ]}
+              onPress={() => setShowIconPicker(!showIconPicker)}
+            >
+              <View
+                style={[
+                  styles.selectedIconPreview,
+                  { backgroundColor: selectedColor + "20" },
+                ]}
+              >
+                <Ionicons
+                  name={(selectedIcon as any) || "pricetag"}
+                  size={24}
+                  color={selectedColor}
+                />
+              </View>
+              <Text style={[styles.iconSelectorText, { color: theme.text }]}>
+                {selectedIcon || "Sélectionner une icône"}
+              </Text>
+              <Ionicons
+                name={showIconPicker ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={theme.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {/* Icon Picker */}
+            {showIconPicker && (
+              <View
+                style={[
+                  styles.iconPicker,
+                  {
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.iconGrid}>
+                    {LABEL_ICONS.map((icon) => (
+                      <TouchableOpacity
+                        key={icon}
+                        style={[
+                          styles.iconOption,
+                          selectedIcon === icon && {
+                            backgroundColor: selectedColor + "30",
+                          },
+                          selectedIcon === icon && {
+                            borderColor: selectedColor,
+                          },
+                        ]}
+                        onPress={() => handleIconSelect(icon)}
+                      >
+                        <Ionicons
+                          name={icon as any}
+                          size={22}
+                          color={
+                            selectedIcon === icon
+                              ? selectedColor
+                              : theme.textSecondary
+                          }
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Color Selector */}
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
+              Couleur
+            </Text>
+            <View style={styles.colorGrid}>
+              {LABEL_COLORS.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  style={[
+                    styles.colorOption,
+                    { backgroundColor: c },
+                    selectedColor === c && styles.colorSelected,
+                  ]}
+                  onPress={() => setValue("color", c)}
+                >
+                  {selectedColor === c && (
+                    <Ionicons name="checkmark" size={18} color="#fff" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Preview */}
+            <View
+              style={[
+                styles.previewCard,
+                {
+                  backgroundColor: selectedColor + "15",
+                  borderColor: selectedColor,
+                },
+              ]}
+            >
+              <View
+                style={[styles.previewIcon, { backgroundColor: selectedColor }]}
+              >
+                <Ionicons
+                  name={(selectedIcon as any) || "pricetag"}
+                  size={20}
+                  color="#fff"
+                />
+              </View>
+              <View style={styles.previewContent}>
+                <Text style={[styles.previewText, { color: theme.text }]}>
+                  {labelName || "Apercu du label"}
+                </Text>
+                <Text
+                  style={[
+                    styles.previewSubtext,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  Comment il apparaitra
+                </Text>
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[
+                styles.submitBtn,
+                { backgroundColor: selectedColor },
+                isUpdating && { opacity: 0.7 },
+              ]}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <View style={styles.submitContent}>
+                  <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                  <Text style={styles.submitBtnText}>Enregistrer</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-    content: { 
-        borderTopLeftRadius: 25, 
-        borderTopRightRadius: 25, 
-        padding: 20, 
-        maxHeight: '85%',
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 12 },
-            android: { elevation: 10 },
-        }),
-    },
-    scrollContent: { flexGrow: 1, paddingBottom: 20 },
-    handleBar: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 12 },
-    titleIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-    titleContent: { flex: 1 },
-    title: { fontSize: 22, fontWeight: '700' },
-    subtitle: { fontSize: 14, marginTop: 2 },
-    label: { fontSize: 14, fontWeight: '600', marginTop: 16, marginBottom: 10 },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, gap: 10 },
-    input: { flex: 1, fontSize: 16 },
-    errorText: { fontSize: 12, marginTop: 4 },
-    // Icon selector styles
-    iconSelector: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1, gap: 12 },
-    selectedIconPreview: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-    iconSelectorText: { flex: 1, fontSize: 16 },
-    iconPicker: { marginTop: 10, padding: 10, borderRadius: 12, borderWidth: 1 },
-    iconGrid: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
-    iconOption: { width: 44, height: 44, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
-    // Color selector styles
-    colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
-    colorOption: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-    colorSelected: { borderWidth: 3, borderColor: '#fff' },
-    // Preview styles
-    previewCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 20, gap: 12 },
-    previewIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-    previewContent: { flex: 1 },
-    previewText: { fontSize: 15, fontWeight: '600' },
-    previewSubtext: { fontSize: 12, marginTop: 2 },
-    // Submit button styles
-    submitBtn: { padding: 18, borderRadius: 14, marginTop: 24, alignItems: 'center' },
-    submitContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    submitBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' }
+  overlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  content: {
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    padding: 20,
+    maxHeight: "85%",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: { elevation: 10 },
+    }),
+  },
+  scrollContent: { flexGrow: 1, paddingBottom: 20 },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    gap: 12,
+  },
+  titleIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  titleContent: { flex: 1 },
+  title: { fontSize: 22, fontWeight: "700" },
+  subtitle: { fontSize: 14, marginTop: 2 },
+  label: { fontSize: 14, fontWeight: "600", marginTop: 16, marginBottom: 10 },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 10,
+  },
+  input: { flex: 1, fontSize: 16 },
+  errorText: { fontSize: 12, marginTop: 4 },
+  // Icon selector styles
+  iconSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  selectedIconPreview: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconSelectorText: { flex: 1, fontSize: 16 },
+  iconPicker: { marginTop: 10, padding: 10, borderRadius: 12, borderWidth: 1 },
+  iconGrid: { flexDirection: "row", gap: 8, paddingVertical: 4 },
+  iconOption: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  // Color selector styles
+  colorGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 4 },
+  colorOption: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  colorSelected: { borderWidth: 3, borderColor: "#fff" },
+  // Preview styles
+  previewCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 20,
+    gap: 12,
+  },
+  previewIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  previewContent: { flex: 1 },
+  previewText: { fontSize: 15, fontWeight: "600" },
+  previewSubtext: { fontSize: 12, marginTop: 2 },
+  // Submit button styles
+  submitBtn: {
+    padding: 18,
+    borderRadius: 14,
+    marginTop: 24,
+    alignItems: "center",
+  },
+  submitContent: { flexDirection: "row", alignItems: "center", gap: 8 },
+  submitBtnText: { color: "#fff", fontSize: 17, fontWeight: "700" },
 });

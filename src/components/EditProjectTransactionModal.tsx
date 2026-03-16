@@ -23,6 +23,7 @@ import {
   ProjectTransactionFormData,
   projectTransactionSchema,
 } from "../utils/projectTransactionSchema";
+import { useCurrencyStore } from "../store/useCurrencyStore";
 
 interface Props {
   visible: boolean;
@@ -43,6 +44,7 @@ export default function EditProjectTransactionModal({
   const isDarkMode = useThemeStore((state) => state.isDarkMode);
   const theme = isDarkMode ? Colors.dark : Colors.light;
   const { success: showSuccess, error: showError } = useModernAlert();
+  const currency = useCurrencyStore((state) => state.currency);
 
   const projectColor = project.color || theme.primary;
 
@@ -339,7 +341,7 @@ export default function EditProjectTransactionModal({
                   Estimation:
                 </Text>
                 <Text style={[styles.previewValue, { color: projectColor }]}>
-                  {estimatedCost?.toLocaleString() || 0} Ar
+                  {estimatedCost?.toLocaleString() || 0} {currency}
                 </Text>
               </View>
               <View style={styles.previewRow}>
@@ -349,7 +351,7 @@ export default function EditProjectTransactionModal({
                   Réel:
                 </Text>
                 <Text style={[styles.previewValue, { color: theme.success }]}>
-                  {realCost?.toLocaleString() || 0} Ar
+                  {realCost?.toLocaleString() || 0} {currency}
                 </Text>
               </View>
             </View>
